@@ -16,6 +16,7 @@ from collections.abc import Callable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit
 
 IDLE_SHUTDOWN_SECONDS = 120
 NO_TAB_SHUTDOWN_SECONDS = 600
@@ -34,10 +35,14 @@ class DashboardServer(ThreadingHTTPServer):
         port: int,
         page: Callable[[], str],
         do_sync: Callable[[Step], dict[str, Any]],
+        strava: Any = None,
+        strava_disconnect: Callable[[], None] | None = None,
     ):
         super().__init__(("127.0.0.1", port), _Handler)
         self.page = page
         self.do_sync = do_sync
+        self.strava = strava  # StravaLink: connect from the app; None when not offered
+        self.strava_disconnect = strava_disconnect
         self.started = time.monotonic()
         self.last_ping: float | None = None
         self.sync_lock = threading.Lock()
@@ -137,10 +142,13 @@ class _Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 - stdlib naming
         if not self._trusted():
             return self._send(HTTPStatus.FORBIDDEN, b"forbidden", "text/plain")
-        path = self.path.split("?")[0]
+        url = urlsplit(self.path)
+        path = url.path
         self.server.last_ping = time.monotonic()
         if path == "/api/status":
             return self._json(HTTPStatus.OK, {"ok": True, **self.server.status})
+        if path == "/strava/callback" and self.server.strava:
+            return self._strava_callback(dict(parse_qsl(url.query)))
         if path not in ("/", "/index.html"):
             return self._send(HTTPStatus.NOT_FOUND, b"not found", "text/plain")
         self._send(HTTPStatus.OK, self.server.page().encode(), "text/html; charset=utf-8")
@@ -155,4 +163,37 @@ class _Handler(BaseHTTPRequestHandler):
             started = self.server.start_sync(auto=bool(self._body().get("auto")))
             status = HTTPStatus.ACCEPTED if started else HTTPStatus.OK
             return self._json(status, {"ok": True, "started": started, **self.server.status})
+        if self.path == "/api/strava/connect" and self.server.strava:
+            body = self._body()
+            try:
+                url = self.server.strava.start(
+                    str(body.get("client_id") or ""),
+                    str(body.get("client_secret") or ""),
+                    f"{self.server.url}strava/callback",
+                )
+            except Exception as exc:  # StravaError: shown to the user as is
+                return self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": str(exc)})
+            return self._json(HTTPStatus.OK, {"ok": True, "url": url})
+        if self.path == "/api/strava/disconnect" and self.server.strava_disconnect:
+            self.server.strava_disconnect()
+            return self._json(HTTPStatus.OK, {"ok": True})
         self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
+
+    def _strava_callback(self, params: dict[str, str]) -> None:
+        """Strava sends the browser back here; save the tokens, then sync and show the app."""
+        try:
+            self.server.strava.finish(params)
+        except Exception as exc:  # StravaError, or Strava unreachable
+            message = str(exc).replace("&", "&amp;").replace("<", "&lt;")
+            body = (
+                "<!doctype html><meta charset='utf-8'><title>Pulso</title>"
+                "<body style='font:16px system-ui;margin:48px;max-width:640px'>"
+                f"<h1 style='font-size:22px'>Strava</h1><p>{message}</p>"
+                "<p><a href='/'>← Pulso</a></p>"
+            )
+            return self._send(HTTPStatus.BAD_REQUEST, body.encode(), "text/html; charset=utf-8")
+        self.server.start_sync(auto=False)
+        self.send_response(HTTPStatus.SEE_OTHER)
+        self.send_header("Location", "/?strava=connected")
+        self.send_header("Content-Length", "0")
+        self.end_headers()

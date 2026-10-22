@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from .cache import ChunkCache
+from .strava_data import merge_strava
 
 # Time constants of the classic fitness/fatigue model (Banister; CTL/ATL in TrainingPeaks).
 ATL_DAYS = 7
@@ -26,6 +27,8 @@ DAY_METRICS = (
     "acute", "chronic", "acwr", "tStatus",
     # derived from activities
     "actN", "actMin", "actKm", "actElev", "actLoad", "lastEnd", "atl", "ctl", "tsb",
+    # Strava
+    "relEffort",
 )  # fmt: skip
 
 
@@ -40,7 +43,20 @@ def sport_of(type_key: str) -> str:
         return "swimming"
     if any(k in t for k in ("walk", "hik")):
         return "walking"
-    if any(k in t for k in ("strength", "cardio", "hiit", "yoga", "pilates", "mobility")):
+    if any(
+        k in t
+        for k in (
+            "strength",
+            "weight",
+            "workout",
+            "crossfit",
+            "cardio",
+            "hiit",
+            "yoga",
+            "pilates",
+            "mobility",
+        )
+    ):
         return "gym"
     return "other"
 
@@ -299,6 +315,7 @@ def build_dataset(cache: ChunkCache, *, today: date | None = None) -> dict[str, 
             if act:
                 activities[act.get("id") or act["start"]] = act
     acts = sorted(activities.values(), key=lambda a: a["start"])
+    acts, strava = merge_strava(cache, acts, sport_of)
 
     per_day: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for a in acts:
@@ -309,6 +326,8 @@ def build_dataset(cache: ChunkCache, *, today: date | None = None) -> dict[str, 
         agg["actElev"] += a.get("elev", 0)
         agg["actLoad"] += a.get("load", 0)
         agg["lastEnd"] = max(agg["lastEnd"], a.get("end", 0))
+        if "relEffort" in a:
+            agg["relEffort"] += a["relEffort"]
     for day, agg in per_day.items():
         days.set(day, **{k: round(v, 1) for k, v in agg.items()})
     # A day the watch recorded without any activity is a rest day: zero load, not unknown.
@@ -367,6 +386,7 @@ def build_dataset(cache: ChunkCache, *, today: date | None = None) -> dict[str, 
         "vo2": _dedupe(vo2, ("date", "sport")),
         "endurance": _dedupe(endurance, ("date",)),
         "weight": _dedupe(weight, ("date",)),
+        "strava": strava,
     }
 
 

@@ -35,7 +35,9 @@ class ChunkCache:
         return self._path(source, start, end).is_file()
 
     def put(self, source: str, start: date, end: date, payload: Any) -> None:
-        path = self._path(source, start, end)
+        self._write(self._path(source, start, end), payload)
+
+    def _write(self, path: Path, payload: Any) -> None:
         for folder in (self.root, self.raw_dir, path.parent):
             folder.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.chmod(folder, 0o700)
@@ -43,6 +45,27 @@ class ChunkCache:
         tmp = path.with_suffix(".json.tmp")
         write_private_file(tmp, json.dumps(payload, separators=(",", ":")))
         os.replace(tmp, path)
+
+    # Documents: responses keyed by name instead of date window (an activity, a profile).
+    def _doc_path(self, source: str, key: str) -> Path:
+        return self.raw_dir / source / f"{key}.json"
+
+    def has_doc(self, source: str, key: str) -> bool:
+        return self._doc_path(source, key).is_file()
+
+    def put_doc(self, source: str, key: str, payload: Any) -> None:
+        self._write(self._doc_path(source, key), payload)
+
+    def get_doc(self, source: str, key: str) -> Any:
+        path = self._doc_path(source, key)
+        return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+
+    def iter_docs(self, source: str) -> Iterator[tuple[str, Any]]:
+        folder = self.raw_dir / source
+        if not folder.is_dir():
+            return
+        for path in sorted(folder.glob("*.json")):
+            yield path.stem, json.loads(path.read_text(encoding="utf-8"))
 
     def drop_overlapping(self, source: str, start: date, end: date) -> None:
         """Remove stale windows that overlap ``start..end`` (e.g. a shorter "today" window)."""
