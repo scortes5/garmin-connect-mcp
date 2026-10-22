@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please **do not open a public issue** for security problems. Use GitHub's
-[private vulnerability reporting](https://github.com/scortes5/garmin-connect-mcp/security/advisories/new)
+[private vulnerability reporting](https://github.com/scortes5/pulso/security/advisories/new)
 instead. You will get an answer within a few days.
 
 Never include real Garmin tokens, passwords, exported `.fit`/`.gpx` files or

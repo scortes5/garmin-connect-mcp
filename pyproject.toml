@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/scortes5/garmin-connect-mcp"
+Repository = "https://github.com/scortes5/pulso"
 Upstream = "https://github.com/eddmann/garmin-connect-mcp"
 
 [project.scripts]

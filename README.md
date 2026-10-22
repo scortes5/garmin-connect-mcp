@@ -1,18 +1,18 @@
-<h1 align="center">Garmin Connect MCP</h1>
+<h1 align="center">Pulso</h1>
 
 <p align="center">
-  Your Garmin data inside Claude and any MCP client — and a private dashboard of your whole<br/>
-  training and health history, with correlations you won't find in Garmin Connect.<br/>
+  Your Garmin and Strava data in a private dashboard of your whole training and health<br/>
+  history — and inside Claude or any MCP client, through a Garmin Connect MCP server.<br/>
   Runs on your computer, on your own account.
 </p>
 
 <p align="center">
-  <a href="https://github.com/scortes5/garmin-connect-mcp/actions/workflows/test.yml"><img alt="CI" src="https://github.com/scortes5/garmin-connect-mcp/actions/workflows/test.yml/badge.svg"></a>
+  <a href="https://github.com/scortes5/pulso/actions/workflows/test.yml"><img alt="CI" src="https://github.com/scortes5/pulso/actions/workflows/test.yml/badge.svg"></a>
   <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-3776ab">
   <img alt="Tools" src="https://img.shields.io/badge/MCP%20tools-24-f97316">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-101%20passing-22c55e">
-  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/scortes5/garmin-connect-mcp?color=blue"></a>
-  <a href="https://github.com/scortes5/garmin-connect-mcp/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/scortes5/garmin-connect-mcp?style=social"></a>
+  <img alt="Tests" src="https://img.shields.io/badge/tests-124%20passing-22c55e">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/scortes5/pulso?color=blue"></a>
+  <a href="https://github.com/scortes5/pulso/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/scortes5/pulso?style=social"></a>
 </p>
 
 <p align="center">
@@ -30,13 +30,16 @@
   <br/><sub>Dashboard running on <code>--demo</code> data.</sub>
 </p>
 
-Garmin Connect MCP is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets Claude (or any MCP client) read your Garmin Connect account. Ask in plain language — *"how did my long ride go?"*, *"am I recovered enough for intervals today?"*, *"chart HR and power for last Saturday"* — and the model pulls the real numbers instead of guessing.
+**Pulso** has two parts that run on your computer:
 
-It also ships a **local dashboard**: one command downloads your entire history (activities, sleep, HRV, Body Battery, stress, readiness, VO₂ max, training status, weight) — and, if you connect it, your **Strava** zones, best efforts, splits, segments and gear — and opens it as an interactive page. Filter any view by dates, sports and source, tap any number to see how it changed over time and the exact rows behind it, and browse or export every table as CSV.
+1. **A Garmin Connect MCP server** — a [Model Context Protocol](https://modelcontextprotocol.io) server that lets Claude (or any MCP client) read your Garmin Connect account. Ask in plain language — *"how did my long ride go?"*, *"am I recovered enough for intervals today?"*, *"chart HR and power for last Saturday"* — and the model pulls the real numbers instead of guessing.
+2. **The Pulso dashboard** — a local app where one command downloads your entire history (activities, sleep, HRV, Body Battery, stress, readiness, VO₂ max, training status, weight) — and, if you connect it, your **Strava** zones, best efforts, splits, segments and gear — and opens it as an interactive page. Filter any view by dates, sports and source, tap any number to see how it changed over time and the exact rows behind it, and browse or export every table as CSV.
 
-It talks to Garmin Connect with **your own login**, stores nothing on any server, and keeps your tokens and exported files readable only by your user.
+Both are installed as one Python package, `garmin-connect-mcp`, which is also the command you run (`garmin-connect-mcp` for the MCP server, `garmin-connect-mcp dashboard` for Pulso), so existing MCP client configurations keep working.
 
-> **Fork of [eddmann/garmin-connect-mcp](https://github.com/eddmann/garmin-connect-mcp)** (MIT, © Edd Mann). This fork fixes tools that never worked upstream, adds the raw data you need to build dashboards, and tightens how credentials and personal data are handled. Every change is listed in [What this fork changes](#what-this-fork-changes).
+It talks to Garmin Connect (and Strava, if you connect it) with **your own login**, stores nothing on any server, and keeps your tokens and exported files readable only by your user.
+
+> **Started as a fork of [eddmann/garmin-connect-mcp](https://github.com/eddmann/garmin-connect-mcp)** (MIT, © Edd Mann). This fork fixes tools that never worked upstream, adds the raw data you need to build dashboards, and tightens how credentials and personal data are handled. Every change is listed in [What this fork changes](#what-this-fork-changes).
 
 > **Like it?** A ⭐ on the repo helps other athletes find it.
 
@@ -189,7 +192,7 @@ Requirements: [uv](https://docs.astral.sh/uv/) (it installs Python 3.12+ for you
 ### 1. Sign in once
 
 ```bash
-uvx --from git+https://github.com/scortes5/garmin-connect-mcp garmin-connect-mcp auth
+uvx --from git+https://github.com/scortes5/pulso garmin-connect-mcp auth
 ```
 
 - Asks for your Garmin email and password (the password is **hidden** while you type) and for the MFA code if your account has one.
@@ -207,7 +210,7 @@ export GARMIN_EXPORT_DIR="$HOME/GarminExports"   # default
 ### Option: Docker
 
 ```bash
-git clone https://github.com/scortes5/garmin-connect-mcp && cd garmin-connect-mcp
+git clone https://github.com/scortes5/pulso && cd pulso
 docker build -t garmin-connect-mcp .
 touch garmin-connect-mcp.env && mkdir -p ~/.garminconnect-docker
 docker run -it --rm \
@@ -219,7 +222,7 @@ docker run -it --rm \
 ### Option: from source
 
 ```bash
-git clone https://github.com/scortes5/garmin-connect-mcp && cd garmin-connect-mcp
+git clone https://github.com/scortes5/pulso && cd pulso
 make deps
 make auth
 ```
@@ -237,7 +240,7 @@ Open **Claude Desktop → Settings → Developer → Edit Config** (`~/Library/A
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/scortes5/garmin-connect-mcp",
+        "git+https://github.com/scortes5/pulso",
         "garmin-connect-mcp"
       ]
     }

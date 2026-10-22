@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-10-22
 
+The repository is now **scortes5/pulso** (formerly scortes5/garmin-connect-mcp; GitHub redirects the old URL). The Python package and the `garmin-connect-mcp` command keep their names.
+
 ### Added
 
 - **Strava** in the dashboard: connect from the app (*Connect Strava* card) or with `garmin-connect-mcp dashboard strava` using your own Strava API application. It syncs after Garmin on every open: your heart-rate and power zones and the time in them per activity, running best efforts with PR ranks, per-km splits, segments, laps, relative effort, kudos, device, gear and gear mileage, plus activities recorded outside Garmin. Garmin uploads are enriched, never counted twice. Downloads stay under Strava's rate limits and resume on the next sync; maps, coordinates and identity are stripped before caching. `--disconnect` forgets the tokens
@@ -103,7 +105,7 @@ Fork of eddmann/garmin-connect-mcp maintained at scortes5/garmin-connect-mcp.
 - `garmin-connect-mcp auth` interactive authentication setup with MFA token persistence
 - Docker image support via GitHub Container Registry
 
-[1.2.0]: https://github.com/scortes5/garmin-connect-mcp/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/scortes5/garmin-connect-mcp/compare/v1.0.1...v1.1.0
+[1.2.0]: https://github.com/scortes5/pulso/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/scortes5/pulso/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/eddmann/garmin-connect-mcp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/eddmann/garmin-connect-mcp/releases/tag/v1.0.0

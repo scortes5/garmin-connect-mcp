@@ -1,6 +1,6 @@
 # Architecture
 
-Garmin Connect MCP has two front ends over one Garmin client:
+Pulso has two front ends over one Garmin client:
 
 1. **The MCP server** (`garmin-connect-mcp`): Claude or any MCP client calls tools over stdio and gets compact JSON.
 2. **The dashboard** (`garmin-connect-mcp dashboard`): downloads your history — from Garmin and, optionally, Strava — into a local cache and renders a self-contained HTML app.
