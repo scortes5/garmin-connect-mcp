@@ -12,7 +12,7 @@ from garminconnect import (
     GarminConnectTooManyRequestsError,
 )
 
-from .auth import GarminConfig, get_token_base64_path, get_token_store
+from .auth import GarminConfig, get_token_base64_path, get_token_store, write_private_file
 
 
 class GarminAPIError(Exception):
@@ -114,7 +114,7 @@ def init_garmin_client(
 
             # Also save base64 encoded tokens
             token_base64_path = get_token_base64_path()
-            Path(token_base64_path).write_text(garmin.client.dumps())
+            write_private_file(Path(token_base64_path), garmin.client.dumps())
             print(f"OAuth tokens encoded as base64: {token_base64_path}", file=sys.stderr)
 
             return garmin
@@ -133,6 +133,25 @@ def init_garmin_client(
 
         traceback.print_exc(file=sys.stderr)
         return None
+
+
+# One authenticated client per server process. Logging in on every tool call is slow
+# and is exactly the traffic pattern that gets an account rate-limited or challenged.
+_cached_client: Garmin | None = None
+
+
+def get_cached_client(config: GarminConfig) -> Garmin | None:
+    """Return the process-wide Garmin client, logging in only the first time."""
+    global _cached_client
+    if _cached_client is None:
+        _cached_client = init_garmin_client(config)
+    return _cached_client
+
+
+def reset_cached_client() -> None:
+    """Forget the cached client so the next call logs in again."""
+    global _cached_client
+    _cached_client = None
 
 
 class GarminClientWrapper:
@@ -171,6 +190,7 @@ class GarminClientWrapper:
                 f"Method '{method_name}' not found on Garmin client", original_error=e
             ) from e
         except GarminConnectAuthenticationError as e:
+            reset_cached_client()
             raise GarminAuthenticationError(original_error=e) from e
         except GarminConnectTooManyRequestsError as e:
             raise GarminRateLimitError(original_error=e) from e
@@ -182,6 +202,7 @@ class GarminClientWrapper:
             elif "404" in error_str or "Not Found" in error_str:
                 raise GarminNotFoundError(original_error=e) from e
             elif "401" in error_str or "403" in error_str or "Unauthorized" in error_str:
+                reset_cached_client()
                 raise GarminAuthenticationError(original_error=e) from e
             else:
                 raise GarminAPIError(f"Garmin API error: {str(e)}", original_error=e) from e

@@ -5,14 +5,47 @@
 A Model Context Protocol (MCP) server for Garmin Connect integration. Access your activities, health data, training metrics, and more through Claude and other LLMs.
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![PyPI](https://img.shields.io/pypi/v/garmin-connect-mcp.svg)](https://pypi.org/project/garmin-connect-mcp/)
-[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg)](https://github.com/eddmann/garmin-connect-mcp/pkgs/container/garmin-connect-mcp)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+> **Fork of [eddmann/garmin-connect-mcp](https://github.com/eddmann/garmin-connect-mcp)** (MIT, © Edd Mann).
+> This fork fixes tools that were calling non-existent Garmin methods, adds raw-data tools
+> for building dashboards (activity time-series, thresholds/FTP, FIT export), and hardens how
+> credentials and personal data are handled. See [What this fork changes](#what-this-fork-changes).
+
+## What this fork changes
+
+**Fixes (these tools failed or silently returned nothing upstream)**
+
+- `get_training_effect` – Garmin has no such endpoint; now read from the activity itself (aerobic/anaerobic TE, label, training load, HR time in zones)
+- `get_performance_metrics` – fitness age always came back `null` (wrong method name); failures per metric are now reported in `analysis.errors` instead of hidden
+- `manage_workouts` `get` action – called a non-existent method
+- `get_activity_social` – removed: the Garmin library exposes no social endpoint, so it could never work
+- `garmin://training/readiness` resource – returned generic daily stats; now returns training readiness, morning readiness, Body Battery, HRV and training status
+- Accurate km/mile splits now locate columns via Garmin's metric descriptors instead of hard-coded positions
+
+**New tools**
+
+| Tool                     | Description                                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| `get_activity_streams`   | Chart-ready time-series (HR, power, pace/speed, cadence, elevation, temperature), downsampled   |
+| `get_fitness_thresholds` | Lactate threshold, cycling FTP, race predictions and running tolerance                          |
+| `export_activity_file`   | Save the original `.fit` (or GPX/TCX/CSV) to a local folder – includes fields Garmin's partner API strips |
+
+**Privacy & reliability**
+
+- Password is **not stored by default**: `auth` uses it once to mint OAuth tokens (opt in with `auth --save-password`); it is read with a hidden prompt
+- Server runs on saved tokens alone; credential files and token exports are written `0600`
+- GPS coordinates are excluded from streams unless explicitly requested (start/end points reveal where you live)
+- OAuth scopes (`userRoles`) and profile-photo URLs are stripped from every response
+- One login per server process instead of one per tool call (fewer requests, fewer rate-limit/bot challenges); the session is dropped and re-created on auth errors
+- `garminconnect` upgraded to 0.3.19 (curl_cffi-based login that survives Garmin's 2026 Cloudflare changes)
 
 ## Overview
 
-This MCP server provides 22 tools to interact with your Garmin Connect account, organized into 8 categories:
+This MCP server provides 24 tools to interact with your Garmin Connect account, organized into 8 categories:
 
-- Activities (3 tools) - Query activities and view detailed metrics
+- Activities (2 tools) - Query activities and view detailed metrics
+- Raw Performance Data (3 tools) - Time-series streams, thresholds/FTP, FIT export
 - Analysis (2 tools) - Compare activities and find similar workouts
 - Health & Wellness (4 tools) - Access health metrics, sleep, heart rate, and activity data
 - Training (3 tools) - Analyze training periods and performance trends
@@ -44,25 +77,22 @@ Additionally, the server provides:
 ### Option 1: Using uvx
 
 ```bash
-uvx garmin-connect-mcp auth
+uvx --from git+https://github.com/scortes5/garmin-connect-mcp garmin-connect-mcp auth
 ```
 
-This will prompt for your credentials, complete Garmin authentication, and save OAuth tokens
-for the MCP server to reuse. It writes credentials to `~/.garminconnect.env` by default
-and saves OAuth tokens under `~/.garminconnect/`.
+This prompts for your email and password (hidden), completes Garmin authentication (including MFA)
+and saves OAuth tokens under `~/.garminconnect/`. Only the email is written to
+`~/.garminconnect.env` (mode `0600`); the password is discarded once tokens exist.
 
-If you prefer manual configuration, create `~/.garminconnect.env` yourself:
-
-```bash
-GARMIN_EMAIL=your-email@example.com
-GARMIN_PASSWORD=your-password
-```
+Add `--save-password` if you want the server to be able to log in again by itself when the
+tokens are revoked (it is then stored in `~/.garminconnect.env`, mode `0600`).
 
 ### Option 2: Using Docker
 
 ```bash
-# Pull the image
-docker pull ghcr.io/eddmann/garmin-connect-mcp:latest
+# Build the image locally
+git clone https://github.com/scortes5/garmin-connect-mcp && cd garmin-connect-mcp
+docker build -t garmin-connect-mcp:latest .
 ```
 
 Then configure credentials using one of these methods:
@@ -77,7 +107,7 @@ touch garmin-connect-mcp.env
 docker run -it --rm \
   -v "/ABSOLUTE/PATH/TO/garmin-connect-mcp.env:/app/.env" \
   -v "/ABSOLUTE/PATH/TO/.garminconnect-docker:/root/.garminconnect" \
-  ghcr.io/eddmann/garmin-connect-mcp:latest \
+  garmin-connect-mcp:latest \
   auth
 ```
 
@@ -120,15 +150,14 @@ Add to your configuration file:
 
 ### Using uvx
 
-After running `uvx garmin-connect-mcp auth`, configure Claude Desktop to start the
-published package:
+After running the `auth` command above, configure Claude Desktop to start this fork:
 
 ```json
 {
   "mcpServers": {
     "garmin": {
       "command": "uvx",
-      "args": ["garmin-connect-mcp"]
+      "args": ["--from", "git+https://github.com/scortes5/garmin-connect-mcp", "garmin-connect-mcp"]
     }
   }
 }
@@ -175,7 +204,7 @@ uv run garmin-connect-mcp auth
         "--rm",
         "-v",
         "/ABSOLUTE/PATH/TO/garmin-connect-mcp.env:/app/.env",
-        "ghcr.io/eddmann/garmin-connect-mcp:latest"
+        "garmin-connect-mcp:latest"
       ]
     }
   }
@@ -197,7 +226,7 @@ uv run garmin-connect-mcp auth
         "/ABSOLUTE/PATH/TO/garmin-connect-mcp.env:/app/.env",
         "-v",
         "/ABSOLUTE/PATH/TO/.garminconnect-docker:/root/.garminconnect",
-        "ghcr.io/eddmann/garmin-connect-mcp:latest"
+        "garmin-connect-mcp:latest"
       ]
     }
   }
@@ -226,7 +255,8 @@ Use built-in prompt templates for common queries (available via prompt suggestio
 ```
 "Show me my runs from the last 30 days"
 "Get details for my half marathon yesterday including splits and heart rate zones"
-"Show me the comments on my latest cycling activity"
+"Chart heart rate and power for my last ride"
+"Export the original FIT file of yesterday's long run"
 ```
 
 ### Training Analysis
@@ -259,13 +289,20 @@ _Note: List-returning tools use cursor-based pagination with default limits (10 
 
 ## Available Tools
 
-### Activities (3 tools)
+### Activities (2 tools)
 
 | Tool                   | Description                                                            |
 | ---------------------- | ---------------------------------------------------------------------- |
 | `query_activities`     | Query activities with pagination (by ID, date range, or specific date) |
 | `get_activity_details` | Get comprehensive activity details (splits, weather, HR zones, gear)   |
-| `get_activity_social`  | Get social details for an activity (likes, comments, kudos)            |
+
+### Raw Performance Data (3 tools)
+
+| Tool                     | Description                                                                 |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `get_activity_streams`   | Downsampled time-series columns; GPS only with `include_gps=true`           |
+| `get_fitness_thresholds` | Lactate threshold, cycling FTP, race predictions, running tolerance         |
+| `export_activity_file`   | Write `.fit`/`.gpx`/`.tcx`/`.csv` to `$GARMIN_EXPORT_DIR` (`~/GarminExports`) |
 
 ### Analysis (2 tools)
 

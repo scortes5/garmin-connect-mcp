@@ -16,6 +16,46 @@ from ..time_utils import (
 )
 from ..types import UnitSystem
 
+_TE_FIELDS = {
+    "aerobic": ("aerobicTrainingEffect", "trainingEffect"),
+    "anaerobic": ("anaerobicTrainingEffect",),
+    "label": ("trainingEffectLabel",),
+    "aerobic_message": ("aerobicTrainingEffectMessage",),
+    "anaerobic_message": ("anaerobicTrainingEffectMessage",),
+    "training_load": ("activityTrainingLoad",),
+}
+
+
+def extract_training_effect(activity: dict[str, Any]) -> dict[str, Any]:
+    """Pull training-effect fields from an activity payload.
+
+    Single-activity payloads nest them under ``summaryDTO`` (aerobic TE is named
+    ``trainingEffect`` there); list payloads keep them at the top level.
+    """
+    sources = [activity.get("summaryDTO") or {}, activity]
+    effect: dict[str, Any] = {}
+    for name, keys in _TE_FIELDS.items():
+        value = None
+        for source in sources:
+            for key in keys:
+                if source.get(key) is not None:
+                    value = source[key]
+                    break
+            if value is not None:
+                break
+        if isinstance(value, float):
+            value = round(value, 1)
+        effect[name] = value
+
+    zones = {}
+    for source in sources:
+        for zone in range(1, 6):
+            seconds = source.get(f"hrTimeInZone_{zone}")
+            if seconds is not None:
+                zones[f"zone_{zone}"] = round(seconds)
+    effect["hr_time_in_zones_seconds"] = zones or None
+    return effect
+
 
 async def analyze_training_period(
     period: Annotated[
@@ -271,6 +311,7 @@ async def get_performance_metrics(
             query_date = datetime.now().strftime("%Y-%m-%d")
 
         metrics_data: dict[str, Any] = {}
+        unavailable: dict[str, str] = {}
 
         # Single-date metrics
         if not is_range:
@@ -279,24 +320,27 @@ async def get_performance_metrics(
                 try:
                     vo2_max = client.safe_call("get_max_metrics", query_date)
                     metrics_data["vo2_max"] = vo2_max
-                except Exception:
+                except Exception as e:
                     metrics_data["vo2_max"] = None
+                    unavailable["vo2_max"] = str(e)
 
             # HRV
             if include_hrv:
                 try:
                     hrv = client.safe_call("get_hrv_data", query_date)
                     metrics_data["hrv"] = hrv
-                except Exception:
+                except Exception as e:
                     metrics_data["hrv"] = None
+                    unavailable["hrv"] = str(e)
 
             # Fitness age
             if include_fitness_age:
                 try:
-                    fitness_age = client.safe_call("get_fitness_age", query_date)
+                    fitness_age = client.safe_call("get_fitnessage_data", query_date)
                     metrics_data["fitness_age"] = fitness_age
-                except Exception:
+                except Exception as e:
                     metrics_data["fitness_age"] = None
+                    unavailable["fitness_age"] = str(e)
 
             metadata = {"date": query_date}
         else:
@@ -306,8 +350,9 @@ async def get_performance_metrics(
                 try:
                     hill_score = client.safe_call("get_hill_score", query_start, query_end)
                     metrics_data["hill_score"] = hill_score
-                except Exception:
+                except Exception as e:
                     metrics_data["hill_score"] = None
+                    unavailable["hill_score"] = str(e)
 
             # Endurance score
             if include_endurance_score:
@@ -316,8 +361,9 @@ async def get_performance_metrics(
                         "get_endurance_score", query_start, query_end
                     )
                     metrics_data["endurance_score"] = endurance_score
-                except Exception:
+                except Exception as e:
                     metrics_data["endurance_score"] = None
+                    unavailable["endurance_score"] = str(e)
 
             metadata = {"start_date": query_start, "end_date": query_end}
 
@@ -329,9 +375,16 @@ async def get_performance_metrics(
         else:
             insights.append("No performance metrics available for this period")
 
+        if unavailable:
+            insights.append(f"Could not fetch: {', '.join(sorted(unavailable))}")
+
+        analysis: dict[str, Any] = {"insights": insights}
+        if unavailable:
+            analysis["errors"] = unavailable
+
         return ResponseBuilder.build_response(
             data=metrics_data,
-            analysis={"insights": insights} if insights else None,
+            analysis=analysis,
             metadata=metadata,
         )
 
@@ -363,12 +416,29 @@ async def get_training_effect(
     try:
         client = await ctx.get_state("client")
 
-        # Pattern 1: Training effect for activity
+        # Pattern 1: Training effect for activity. Garmin has no dedicated endpoint;
+        # the values live on the activity itself.
         if activity_id is not None:
-            effect = client.safe_call("get_training_effect", activity_id)
+            activity = client.safe_call("get_activity", activity_id)
+            if not activity:
+                return ResponseBuilder.build_error_response(
+                    f"Activity {activity_id} not found",
+                    "not_found",
+                    ["Check the activity ID with query_activities"],
+                )
+
+            effect = extract_training_effect(activity)
+            insights = []
+            if effect["label"]:
+                insights.append(f"Primary benefit: {effect['label']}")
+            if effect["aerobic"] is not None:
+                insights.append(
+                    f"Aerobic TE {effect['aerobic']}, anaerobic TE {effect['anaerobic']}"
+                )
 
             return ResponseBuilder.build_response(
                 data={"training_effect": effect},
+                analysis={"insights": insights} if insights else None,
                 metadata={"activity_id": activity_id},
             )
 

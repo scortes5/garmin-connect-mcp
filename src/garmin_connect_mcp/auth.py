@@ -1,5 +1,6 @@
 """Authentication and configuration for Garmin Connect API."""
 
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -34,12 +35,32 @@ def load_config() -> GarminConfig:
 
 
 def validate_credentials(config: GarminConfig) -> bool:
-    """Check if credentials are properly configured."""
+    """Check if email/password credentials are properly configured."""
     if not config.garmin_email or config.garmin_email == "your_email@example.com":
         return False
     if not config.garmin_password or config.garmin_password == "your_password":
         return False
     return True
+
+
+def has_saved_tokens(config: GarminConfig) -> bool:
+    """Check whether OAuth tokens from a previous login exist on disk."""
+    token_dir = Path(config.garmintokens).expanduser()
+    return token_dir.is_dir() and any(token_dir.iterdir())
+
+
+def can_authenticate(config: GarminConfig) -> bool:
+    """Saved tokens are enough to run; the password is only needed to mint new ones."""
+    return has_saved_tokens(config) or validate_credentials(config)
+
+
+def write_private_file(path: Path, content: str) -> None:
+    """Write a file readable only by the current user (0600), even under a loose umask."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(content)
+    os.chmod(path, 0o600)
 
 
 def get_token_store() -> str:

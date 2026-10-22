@@ -9,8 +9,8 @@ from typing import Any
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
-from .auth import load_config, validate_credentials
-from .client import GarminClientWrapper, init_garmin_client
+from .auth import can_authenticate, load_config
+from .client import GarminClientWrapper, get_cached_client
 
 
 class ConfigMiddleware(Middleware):
@@ -18,8 +18,8 @@ class ConfigMiddleware(Middleware):
 
     This middleware:
     1. Loads the Garmin config from environment variables
-    2. Validates that credentials are properly configured
-    3. Initializes the Garmin client
+    2. Checks that saved tokens or credentials are available
+    3. Reuses one authenticated Garmin client for the whole server process
     4. Injects the client into the context state for tools to access via ctx.get_state("client")
     5. Raises ToolError if authentication fails
     """
@@ -29,14 +29,14 @@ class ConfigMiddleware(Middleware):
         # Load and validate configuration
         config = load_config()
 
-        if not validate_credentials(config):
+        if not can_authenticate(config):
             raise ToolError(
-                "Garmin credentials not configured. "
+                "Garmin is not authenticated. "
                 "Please run 'garmin-connect-mcp auth' to set up authentication."
             )
 
         # Initialize Garmin client
-        client = init_garmin_client(config)
+        client = get_cached_client(config)
         if client is None:
             raise ToolError(
                 "Failed to initialize Garmin client. "

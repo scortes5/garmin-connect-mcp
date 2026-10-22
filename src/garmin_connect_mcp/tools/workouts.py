@@ -45,7 +45,7 @@ async def manage_workouts(
                     ["Provide workout_id parameter"],
                 )
 
-            workout = client.safe_call("get_workout", workout_id)
+            workout = client.safe_call("get_workout_by_id", workout_id)
             return ResponseBuilder.build_response(
                 data={"workout": workout},
                 metadata={"action": "get", "workout_id": workout_id},

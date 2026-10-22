@@ -1,15 +1,22 @@
 """Interactive authentication setup script for Garmin Connect MCP."""
 
+import os
 import sys
+from getpass import getpass
 
-from dotenv import set_key
+from dotenv import set_key, unset_key
 
 from ..auth import GarminConfig, get_env_file_path, get_token_store
 from ..client import init_garmin_client
 
 
-def main():
-    """Run the interactive authentication setup."""
+def main(save_password: bool = False):
+    """Run the interactive authentication setup.
+
+    By default only the email is written to disk. The password is used once to mint
+    OAuth tokens and then discarded; pass save_password=True to keep it so the server
+    can silently re-login if the tokens are ever revoked.
+    """
     print("=" * 60)
     print("Garmin Connect MCP - Authentication Setup")
     print("=" * 60)
@@ -21,7 +28,7 @@ def main():
     print("Enter your Garmin Connect credentials:")
     print("-" * 60)
     email = input("Email: ").strip()
-    password = input("Password: ").strip()
+    password = getpass("Password (hidden): ").strip()
 
     if not email or not password:
         print("\nError: Email and password are required.")
@@ -33,10 +40,18 @@ def main():
     env_path.touch(exist_ok=True)
 
     set_key(str(env_path), "GARMIN_EMAIL", email)
-    set_key(str(env_path), "GARMIN_PASSWORD", password)
+    if save_password:
+        set_key(str(env_path), "GARMIN_PASSWORD", password)
+    else:
+        unset_key(str(env_path), "GARMIN_PASSWORD", quote_mode="never")
+    os.chmod(env_path, 0o600)
 
     print()
-    print(f"Credentials saved to: {env_path}")
+    print(f"Email saved to: {env_path} (permissions 0600)")
+    if save_password:
+        print("Password saved too (--save-password).")
+    else:
+        print("Password NOT saved: it is only used now to create OAuth tokens.")
     print()
     print("-" * 60)
     print("Authenticating with Garmin Connect...")

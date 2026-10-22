@@ -19,7 +19,6 @@ mcp.add_middleware(ConfigMiddleware())
 # Import and register all tools
 from .tools.activities import (
     get_activity_details,
-    get_activity_social,
     query_activities,
 )
 from .tools.analysis import (
@@ -38,6 +37,11 @@ from .tools.health_wellness import (
     query_health_summary,
     query_heart_rate_data,
     query_sleep_data,
+)
+from .tools.performance_data import (
+    export_activity_file,
+    get_activity_streams,
+    get_fitness_thresholds,
 )
 from .tools.training import (
     analyze_training_period,
@@ -62,12 +66,6 @@ mcp.tool(
         "openWorldHint": False,
     }
 )(get_activity_details)
-mcp.tool(
-    annotations={
-        "readOnlyHint": True,
-        "openWorldHint": False,
-    }
-)(get_activity_social)
 
 # Register analysis tools
 mcp.tool(
@@ -82,6 +80,28 @@ mcp.tool(
         "openWorldHint": False,
     }
 )(find_similar_activities)
+
+# Register raw performance data tools
+mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "openWorldHint": False,
+    }
+)(get_activity_streams)
+mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "openWorldHint": False,
+    }
+)(get_fitness_thresholds)
+mcp.tool(
+    annotations={
+        "readOnlyHint": False,
+        "openWorldHint": False,
+        "destructiveHint": False,
+        "idempotentHint": True,
+    }
+)(export_activity_file)
 
 # Register health & wellness tools
 mcp.tool(
@@ -222,11 +242,11 @@ async def athlete_profile_resource() -> str:
     """Provide athlete profile with stats and zones for context-aware clients."""
     # Resources don't go through middleware, so we initialize client directly
     from .auth import load_config
-    from .client import GarminClientWrapper, init_garmin_client
+    from .client import GarminClientWrapper, get_cached_client
     from .response_builder import ResponseBuilder
 
     config = load_config()
-    client = init_garmin_client(config)
+    client = get_cached_client(config)
     if client is None:
         return ResponseBuilder.build_error_response("Failed to initialize Garmin client")
 
@@ -257,24 +277,41 @@ async def athlete_profile_resource() -> str:
     },
 )
 async def training_readiness_resource() -> str:
-    """Provide current training readiness, Body Battery, and recovery status."""
+    """Provide current training readiness, Body Battery, HRV and training status."""
+    from datetime import date
+
     from .auth import load_config
-    from .client import GarminClientWrapper, init_garmin_client
+    from .client import GarminClientWrapper, get_cached_client
     from .response_builder import ResponseBuilder
 
     config = load_config()
-    client = init_garmin_client(config)
+    client = get_cached_client(config)
     if client is None:
         return ResponseBuilder.build_error_response("Failed to initialize Garmin client")
 
     wrapper = GarminClientWrapper(client)
+    today = date.today().isoformat()
 
-    # Get today's health data
-    daily_stats = wrapper.safe_call("get_stats", "today")
+    sections = {
+        "training_readiness": ("get_training_readiness", (today,)),
+        "morning_readiness": ("get_morning_training_readiness", (today,)),
+        "body_battery": ("get_body_battery", (today, today)),
+        "hrv": ("get_hrv_data", (today,)),
+        "training_status": ("get_training_status", (today,)),
+    }
+    data: dict = {}
+    errors: dict = {}
+    for name, (method, args) in sections.items():
+        try:
+            data[name] = wrapper.safe_call(method, *args)
+        except Exception as e:  # one missing metric must not hide the rest
+            data[name] = None
+            errors[name] = str(e)
 
     return ResponseBuilder.build_response(
-        data={"readiness": daily_stats},
-        metadata={"resource": "training_readiness", "date": "today"},
+        data=data,
+        analysis={"errors": errors} if errors else None,
+        metadata={"resource": "training_readiness", "date": today},
     )
 
 
@@ -287,11 +324,11 @@ async def training_readiness_resource() -> str:
 async def health_today_resource() -> str:
     """Provide today's health snapshot (steps, sleep, stress, HR)."""
     from .auth import load_config
-    from .client import GarminClientWrapper, init_garmin_client
+    from .client import GarminClientWrapper, get_cached_client
     from .response_builder import ResponseBuilder
 
     config = load_config()
-    client = init_garmin_client(config)
+    client = get_cached_client(config)
     if client is None:
         return ResponseBuilder.build_error_response("Failed to initialize Garmin client")
 

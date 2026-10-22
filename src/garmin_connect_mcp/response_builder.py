@@ -19,6 +19,34 @@ def _convert_datetimes(obj: Any) -> Any:  # type: ignore[misc]
     return obj
 
 
+# Fields Garmin attaches to many payloads that carry no training value but do expose
+# account internals (OAuth scopes) or profile photo URLs. Dropped from every response.
+REDACTED_KEYS = frozenset(
+    {
+        "userRoles",
+        "ownerProfileImageUrlSmall",
+        "ownerProfileImageUrlMedium",
+        "ownerProfileImageUrlLarge",
+        "profileImageUrlSmall",
+        "profileImageUrlMedium",
+        "profileImageUrlLarge",
+    }
+)
+
+
+def _strip_redacted(obj: Any) -> Any:  # type: ignore[misc]
+    """Recursively drop REDACTED_KEYS from dicts."""
+    if isinstance(obj, dict):
+        return {
+            k: _strip_redacted(v)  # type: ignore[misc]
+            for k, v in obj.items()  # type: ignore[misc]
+            if k not in REDACTED_KEYS
+        }
+    if isinstance(obj, list):
+        return [_strip_redacted(item) for item in obj]  # type: ignore[misc]
+    return obj
+
+
 class ResponseBuilder:
     """Build structured responses with data, analysis, and metadata."""
 
@@ -79,7 +107,7 @@ class ResponseBuilder:
             JSON string with structured response
         """
         # Convert datetime objects to ISO strings
-        converted_data = cast(JSONSerializable, _convert_datetimes(data))
+        converted_data = cast(JSONSerializable, _strip_redacted(_convert_datetimes(data)))
         converted_analysis: dict[str, Any] | None = None
         if analysis:
             converted_analysis = cast(dict[str, Any], _convert_datetimes(analysis))

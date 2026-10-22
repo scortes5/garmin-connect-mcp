@@ -55,3 +55,22 @@ REPORT.md
 htmlcov/
 
 # UV
+
+# Personal Garmin data — never commit
+.garminconnect.env
+*.env
+!.env.example
+garmin_tokens*.json
+oauth*_token*.json
+GarminExports/
+*.fit
+*.FIT
+*.gpx
+*.tcx
+*.kml
+*.db
+*.sqlite
+*.sqlite3
+exports/
+data/
+*.log

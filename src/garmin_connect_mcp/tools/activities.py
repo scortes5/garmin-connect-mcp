@@ -11,6 +11,16 @@ from ..time_utils import parse_date_string
 from ..types import UnitSystem
 
 
+def metric_index(activity_details: dict[str, Any], key: str, default: int | None = None) -> int:
+    """Return the column index of a metric key in an activity-details payload."""
+    for descriptor in activity_details.get("metricDescriptors") or []:
+        if descriptor.get("key") == key and descriptor.get("metricsIndex") is not None:
+            return int(descriptor["metricsIndex"])
+    if default is None:
+        raise KeyError(key)
+    return default
+
+
 async def _query_activities_paginated(
     client: GarminClientWrapper,
     start_date: str,
@@ -401,11 +411,10 @@ def _compute_accurate_splits_from_details(
     if not metrics_data:
         return {"accurate": False, "reason": "Empty metrics data"}
 
-    # Find indices for distance and time metrics
-    # Index 12 = sumDistance (cumulative distance in meters)
-    # Index 8 = sumDuration (cumulative time in seconds)
-    DISTANCE_INDEX = 12
-    TIME_INDEX = 8
+    # Resolve column positions from the descriptors; Garmin reorders them between
+    # devices and activity types. Fall back to the historical positions.
+    DISTANCE_INDEX = metric_index(activity_details, "sumDistance", default=12)
+    TIME_INDEX = metric_index(activity_details, "sumDuration", default=8)
 
     # Extract time/distance pairs
     time_distance_pairs = []
@@ -795,71 +804,6 @@ async def get_activity_details(
             e.message,
             "api_error",
             ["Check your Garmin Connect credentials", "Verify your internet connection"],
-        )
-    except Exception as e:
-        return ResponseBuilder.build_error_response(str(e), "internal_error")
-
-
-async def get_activity_social(
-    activity_id: Annotated[int, "Activity ID to get social details for"],
-    ctx: Context | None = None,
-) -> str:
-    """
-    Get social details for an activity (likes, comments, kudos).
-
-    Args:
-        activity_id: The Garmin Connect activity ID
-
-    Returns:
-        Structured JSON with social data, analysis, and metadata
-    """
-    assert ctx is not None
-    try:
-        client = await ctx.get_state("client")
-
-        # Get activity social details
-        social = client.safe_call("get_activity_social", activity_id)
-
-        # Generate insights
-        insights = []
-        if social:
-            # Count likes/kudos
-            likes_count = 0
-            if isinstance(social, dict):
-                if "likes" in social and isinstance(social["likes"], list):
-                    likes_count = len(social["likes"])
-                elif "kudos" in social and isinstance(social["kudos"], list):
-                    likes_count = len(social["kudos"])
-
-            if likes_count > 0:
-                insights.append(f"Received {likes_count} like(s)/kudo(s)")
-
-            # Count comments
-            comments_count = 0
-            if (
-                isinstance(social, dict)
-                and "comments" in social
-                and isinstance(social["comments"], list)
-            ):
-                comments_count = len(social["comments"])
-
-            if comments_count > 0:
-                insights.append(f"Has {comments_count} comment(s)")
-
-            if likes_count == 0 and comments_count == 0:
-                insights.append("No social interactions yet")
-
-        return ResponseBuilder.build_response(
-            data={"activity_id": activity_id, "social": social},
-            analysis={"insights": insights} if insights else None,
-            metadata={"query_type": "activity_social", "activity_id": activity_id},
-        )
-
-    except GarminAPIError as e:
-        return ResponseBuilder.build_error_response(
-            e.message,
-            "api_error",
-            ["Check your Garmin Connect credentials", "Verify the activity ID is correct"],
         )
     except Exception as e:
         return ResponseBuilder.build_error_response(str(e), "internal_error")

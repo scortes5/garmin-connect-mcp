@@ -1,17 +1,22 @@
 [project]
 name = "garmin-connect-mcp"
-version = "1.0.0"
+version = "1.1.0"
 description = "Model Context Protocol server for Garmin Connect API integration"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "fastmcp>=3.3.1",
-    "garminconnect>=0.3.3",
+    "garminconnect>=0.3.19",
     "pydantic>=2.10.5",
     "pydantic-settings>=2.7.1",
     "python-dotenv>=1.0.1",
     "httpx>=0.28.1",
 ]
+
+[project.urls]
+Repository = "https://github.com/scortes5/garmin-connect-mcp"
+Upstream = "https://github.com/eddmann/garmin-connect-mcp"
 
 [project.scripts]
 garmin-connect-mcp = "garmin_connect_mcp.cli:main"
@@ -31,8 +36,8 @@ include = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/garmin_connect_mcp"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.2",
     "pytest-mock>=3.14.0",

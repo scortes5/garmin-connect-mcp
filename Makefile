@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 
 SHELL := /bin/bash
-IMAGE_NAME := ghcr.io/eddmann/garmin-connect-mcp
+IMAGE_NAME := ghcr.io/scortes5/garmin-connect-mcp
 VERSION := $(shell grep '^version' pyproject.toml | cut -d '"' -f 2)
 
 ##@ Setup

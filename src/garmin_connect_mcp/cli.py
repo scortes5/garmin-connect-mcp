@@ -13,18 +13,18 @@ def main() -> None:
         server_main()
         return
 
-    if args == ["auth"]:
+    if args and args[0] == "auth" and set(args[1:]) <= {"--save-password"}:
         from .scripts.setup_auth import main as auth_main
 
-        auth_main()
+        auth_main(save_password="--save-password" in args)
         return
 
     if args[0] in {"-h", "--help", "help"}:
-        print("Usage: garmin-connect-mcp [auth]")
+        print("Usage: garmin-connect-mcp [auth [--save-password]]")
         return
 
     print(f"Unknown command: {args[0]}", file=sys.stderr)
-    print("Usage: garmin-connect-mcp [auth]", file=sys.stderr)
+    print("Usage: garmin-connect-mcp [auth [--save-password]]", file=sys.stderr)
     sys.exit(2)
 
 
