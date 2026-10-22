@@ -98,13 +98,10 @@ The dashboard is a small local app: it opens straight away with what is already 
 
 | Section | What you see |
 |---|---|
-| **Overview** | KPIs for the period with change vs the same period a year earlier, the strongest findings from your data, a training calendar and weekly hours by sport. |
-| **Training** | Monthly hours by sport, fitness / fatigue / form (CTL, ATL, TSB), Garmin's acute:chronic load ratio, time in HR zones, aerobic vs anaerobic training effect, power curve per year, records. |
-| **Recovery** | Overnight HRV against your baseline band, resting HR, Body Battery, stress, training readiness, respiration and SpO₂ — daily values with a 7-day average. |
-| **Sleep** | Stages, score, bedtime and wake-time regularity, sleep by weekday, and how the night after easy vs hard days looks. |
-| **Fitness & health** | VO₂ max (running and cycling), endurance score, steps, weekly intensity minutes vs the WHO 150-minute target, weight, calories. |
-| **Years** | Cumulative distance / hours / elevation / load per year on one chart, a year-over-year table and a month × year heatmap. |
-| **Correlations** | Plain-language findings, a clickable correlation matrix and a scatter explorer for any pair of metrics, same day or next day. |
+| **Summary** | One sentence with the period's totals and the change vs the period before; four key numbers with a mini trend; **"How are you doing lately?"** — the last 7 days of HRV, resting HR, sleep, morning energy and stress against your own normal range, labelled *better / normal / worse*; weekly hours by sport; and up to four findings from your data written as plain sentences (*"After hard training days, your readiness goes down: 37 vs 72"*). |
+| **Training** | Hours, distance and share of time per sport; month-by-month hours; fitness vs fatigue (weekly); time in each heart-rate zone; a calendar of training days; your best marks of the period. |
+| **Recovery & sleep** | One card per metric — HRV, resting HR, sleep hours and score, morning energy (Body Battery), stress, readiness, steps — each with a one-line explanation, the period average, the change vs the previous period and a weekly trend; sleep stages, bed and wake times and regularity; VO₂ max and weight. |
+| **Year by year** | Running total since 1 January with the selected year highlighted against the others (hours, distance, elevation or activities), and a year table with the best year per column in bold. |
 | **Activities** | Every activity, searchable, filterable by sport and sortable by any column. |
 
 Every view follows the period selector: **last 12 months**, **any single year**, or **all history**.

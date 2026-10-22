@@ -10,24 +10,31 @@
 </head>
 <body>
 <div id="sync-bar" class="sync-bar" hidden><i></i></div>
+
 <header class="topbar">
-  <div class="brand">
-    <img src="/*__ICON__*/" alt="" aria-hidden="true">
-    <div>
-      <strong>Pulso</strong>
-      <span id="sync-info" class="muted"></span>
+  <div class="topbar-inner">
+    <div class="brand">
+      <img src="/*__ICON__*/" alt="" aria-hidden="true">
+      <div>
+        <strong>Pulso</strong>
+        <span id="sync-info"></span>
+      </div>
+    </div>
+    <div class="controls">
+      <div id="sync-pill" class="sync-pill" hidden role="status" aria-live="polite"><span class="led"></span><span id="sync-text"></span></div>
+      <button id="sync-btn" class="btn primary" hidden></button>
+      <button id="lang-btn" class="btn icon" title="Idioma / Language">EN</button>
+      <button id="theme-btn" class="btn icon" title="Tema" aria-label="Tema">◐</button>
     </div>
   </div>
-  <div class="controls">
-    <div id="scopes" class="chips" role="tablist" aria-label="Period"></div>
-    <div id="sync-pill" class="sync-pill" hidden role="status" aria-live="polite"><span class="led"></span><span id="sync-text"></span></div>
-    <button id="sync-btn" class="btn primary" hidden></button>
-    <button id="lang-btn" class="btn ghost" title="Language">EN</button>
-    <button id="theme-btn" class="btn ghost" title="Theme" aria-label="Theme">◐</button>
+  <div class="topbar-inner nav-row">
+    <nav id="tabs" class="tabs" aria-label="Secciones"></nav>
+    <div class="period">
+      <label for="scope" data-i18n="period"></label>
+      <select id="scope" class="select"></select>
+    </div>
   </div>
 </header>
-
-<nav id="tabs" class="tabs" aria-label="Sections"></nav>
 
 <div id="banner" class="banner" hidden role="alert"></div>
 
@@ -43,102 +50,117 @@
 </div>
 
 <main id="main">
+  <!-- Resumen -->
   <section data-tab="overview">
-    <div id="kpis" class="kpis"></div>
-    <h2 data-i18n="insights"></h2>
-    <div id="insights" class="insights"></div>
-    <div class="grid two">
-      <div class="card wide"><h3 data-i18n="calendar"></h3><div id="calendar" class="calendar"></div></div>
-      <div class="card wide"><h3 data-i18n="weeklyHours"></h3><div class="chart tall"><canvas id="c-weekly"></canvas></div></div>
-    </div>
-  </section>
+    <p id="headline" class="headline"></p>
+    <div id="kpis" class="tiles four"></div>
 
-  <section data-tab="training">
-    <div class="grid two">
-      <div class="card"><h3 data-i18n="monthlyHours"></h3><div class="chart"><canvas id="c-monthly"></canvas></div></div>
-      <div class="card"><h3 data-i18n="sportMix"></h3><div id="sport-table"></div></div>
-      <div class="card wide"><h3 data-i18n="pmc"></h3><p class="hint" data-i18n="pmcHint"></p><div class="chart tall"><canvas id="c-pmc"></canvas></div></div>
-      <div class="card"><h3 data-i18n="acwrTitle"></h3><p class="hint" data-i18n="acwrHint"></p><div class="chart"><canvas id="c-acwr"></canvas></div></div>
-      <div class="card"><h3 data-i18n="zones"></h3><div class="chart"><canvas id="c-zones"></canvas></div></div>
-      <div class="card"><h3 data-i18n="teScatter"></h3><div class="chart"><canvas id="c-te"></canvas></div></div>
-      <div class="card"><h3 data-i18n="powerCurve"></h3><p class="hint" data-i18n="powerHint"></p><div class="chart"><canvas id="c-power"></canvas></div></div>
-      <div class="card wide"><h3 data-i18n="records"></h3><div id="records" class="records"></div></div>
-    </div>
-  </section>
-
-  <section data-tab="recovery">
-    <div id="kpis-recovery" class="kpis"></div>
-    <div class="grid two">
-      <div class="card"><h3 data-i18n="hrvTitle"></h3><p class="hint" data-i18n="hrvHint"></p><div class="chart"><canvas id="c-hrv"></canvas></div></div>
-      <div class="card"><h3 data-i18n="rhrTitle"></h3><div class="chart"><canvas id="c-rhr"></canvas></div></div>
-      <div class="card"><h3 data-i18n="bbTitle"></h3><div class="chart"><canvas id="c-bb"></canvas></div></div>
-      <div class="card"><h3 data-i18n="stressTitle"></h3><div class="chart"><canvas id="c-stress"></canvas></div></div>
-      <div class="card"><h3 data-i18n="readinessTitle"></h3><div class="chart"><canvas id="c-ready"></canvas></div></div>
-      <div class="card"><h3 data-i18n="respTitle"></h3><div class="chart"><canvas id="c-resp"></canvas></div></div>
-    </div>
-  </section>
-
-  <section data-tab="sleep">
-    <div id="kpis-sleep" class="kpis"></div>
-    <div class="grid two">
-      <div class="card wide"><h3 data-i18n="stagesTitle"></h3><div class="chart tall"><canvas id="c-stages"></canvas></div></div>
-      <div class="card"><h3 data-i18n="sleepScoreTitle"></h3><div class="chart"><canvas id="c-sleepscore"></canvas></div></div>
-      <div class="card"><h3 data-i18n="scheduleTitle"></h3><p class="hint" data-i18n="scheduleHint"></p><div class="chart"><canvas id="c-schedule"></canvas></div></div>
-      <div class="card"><h3 data-i18n="weekdayTitle"></h3><div class="chart"><canvas id="c-weekday"></canvas></div></div>
-      <div class="card"><h3 data-i18n="sleepVsLoad"></h3><p class="hint" data-i18n="sleepVsLoadHint"></p><div class="chart"><canvas id="c-sleepload"></canvas></div></div>
-    </div>
-  </section>
-
-  <section data-tab="fitness">
-    <div class="grid two">
-      <div class="card"><h3 data-i18n="vo2Title"></h3><div class="chart"><canvas id="c-vo2"></canvas></div></div>
-      <div class="card"><h3 data-i18n="enduranceTitle"></h3><div class="chart"><canvas id="c-endurance"></canvas></div></div>
-      <div class="card"><h3 data-i18n="stepsTitle"></h3><div class="chart"><canvas id="c-steps"></canvas></div></div>
-      <div class="card"><h3 data-i18n="imTitle"></h3><p class="hint" data-i18n="imHint"></p><div class="chart"><canvas id="c-im"></canvas></div></div>
-      <div class="card"><h3 data-i18n="weightTitle"></h3><div class="chart"><canvas id="c-weight"></canvas></div></div>
-      <div class="card"><h3 data-i18n="kcalTitle"></h3><div class="chart"><canvas id="c-kcal"></canvas></div></div>
-    </div>
-  </section>
-
-  <section data-tab="years">
-    <div class="card wide">
+    <div class="card" id="now-card">
       <div class="card-head">
-        <h3 data-i18n="cumulative"></h3>
-        <select id="cum-metric" class="select"></select>
+        <div>
+          <h2 data-i18n="nowTitle"></h2>
+          <p class="sub" id="now-sub"></p>
+        </div>
       </div>
+      <div id="now" class="now"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="weeklyTitle"></h2>
+      <p class="sub" data-i18n="weeklySub"></p>
+      <div class="legend" id="weekly-legend"></div>
+      <div class="chart"><canvas id="c-weekly"></canvas></div>
+    </div>
+
+    <div class="section-head">
+      <h2 data-i18n="findingsTitle"></h2>
+      <p class="sub" data-i18n="findingsSub"></p>
+    </div>
+    <div id="findings" class="findings"></div>
+  </section>
+
+  <!-- Entrenamiento -->
+  <section data-tab="training">
+    <div class="card">
+      <h2 data-i18n="bySportTitle"></h2>
+      <p class="sub" data-i18n="bySportSub"></p>
+      <div id="sport-table" class="table-wrap"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="monthlyTitle"></h2>
+      <p class="sub" data-i18n="monthlySub"></p>
+      <div class="legend" id="monthly-legend"></div>
+      <div class="chart"><canvas id="c-monthly"></canvas></div>
+    </div>
+
+    <div class="grid two">
+      <div class="card">
+        <h2 data-i18n="formTitle"></h2>
+        <p class="sub" data-i18n="formSub"></p>
+        <div class="legend" id="form-legend"></div>
+        <div class="chart"><canvas id="c-form"></canvas></div>
+      </div>
+      <div class="card">
+        <h2 data-i18n="zonesTitle"></h2>
+        <p class="sub" data-i18n="zonesSub"></p>
+        <div id="zones" class="zones"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="calendarTitle"></h2>
+      <p class="sub" data-i18n="calendarSub"></p>
+      <div id="calendar" class="calendar"></div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="recordsTitle"></h2>
+      <div id="records" class="records"></div>
+    </div>
+  </section>
+
+  <!-- Recuperación y sueño -->
+  <section data-tab="health">
+    <p class="lead" data-i18n="healthLead"></p>
+    <div id="health-cards" class="metric-grid"></div>
+
+    <div class="card">
+      <h2 data-i18n="sleepTitle"></h2>
+      <p class="sub" data-i18n="sleepSub"></p>
+      <div id="sleep-tiles" class="tiles four compact"></div>
+      <div class="legend" id="sleep-legend"></div>
+      <div class="chart"><canvas id="c-sleep"></canvas></div>
+    </div>
+
+    <div id="body-cards" class="metric-grid two"></div>
+  </section>
+
+  <!-- Año a año -->
+  <section data-tab="history">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 data-i18n="cumTitle"></h2>
+          <p class="sub" data-i18n="cumSub"></p>
+        </div>
+        <div id="cum-metric" class="segmented" role="tablist"></div>
+      </div>
+      <div class="legend" id="cum-legend"></div>
       <div class="chart tall"><canvas id="c-cumulative"></canvas></div>
     </div>
-    <div class="card wide"><h3 data-i18n="yearTable"></h3><div id="year-table" class="table-wrap"></div></div>
-    <div class="card wide"><h3 data-i18n="monthHeat"></h3><div id="month-heat" class="table-wrap"></div></div>
-  </section>
 
-  <section data-tab="correlations">
-    <p class="lead" data-i18n="corrLead"></p>
-    <div id="corr-insights" class="insights"></div>
-    <div class="grid two">
-      <div class="card">
-        <h3 data-i18n="matrix"></h3>
-        <p class="hint" data-i18n="matrixHint"></p>
-        <div id="matrix" class="table-wrap"></div>
-      </div>
-      <div class="card">
-        <div class="card-head wrap">
-          <h3 data-i18n="explore"></h3>
-          <div class="pair-picker">
-            <select id="px" class="select"></select>
-            <select id="plag" class="select"></select>
-            <select id="py" class="select"></select>
-          </div>
-        </div>
-        <div class="chart tall"><canvas id="c-scatter"></canvas></div>
-        <div id="pair-stats" class="pair-stats"></div>
-      </div>
+    <div class="card">
+      <h2 data-i18n="yearTitle"></h2>
+      <p class="sub" data-i18n="yearSub"></p>
+      <div id="year-table" class="table-wrap"></div>
     </div>
   </section>
 
+  <!-- Actividades -->
   <section data-tab="activities">
-    <div class="card wide">
-      <div class="card-head wrap">
+    <div class="card">
+      <div class="toolbar">
         <input id="act-search" class="input" type="search">
         <select id="act-sport" class="select"></select>
         <span id="act-count" class="muted"></span>

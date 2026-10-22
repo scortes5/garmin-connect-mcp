@@ -140,7 +140,7 @@ The scatter explorer recomputes r in the browser for any pair the user picks.
 
 `dashboard.html` has five markers replaced in order: styles, Chart.js, `app.js`, the live flag, and last the data (so no marker is ever searched for inside user text). JSON is escaped so `</script>` in an activity name cannot close the script element. The result needs no network.
 
-`app.js` is a dependency-free single-page app: tabs, period selector, i18n (ES/EN, `?lang=`), theme (auto/dark/light), and one render function per tab. Preferences are kept in `localStorage` when available.
+`app.js` is a dependency-free single-page app: five tabs, a period selector, i18n (ES/EN, `?lang=`), theme (auto/dark/light), and one render function per tab. Preferences are kept in `localStorage` when available. Design rules: plain words instead of acronyms (each metric carries a one-line explanation in `METRICS`), one y-axis per chart, weekly or monthly averages instead of noisy daily series, and colours as roles in `styles.css` — sports use a fixed categorical order validated for colour-vision deficiency in light and dark, magnitudes an ordinal blue ramp. Findings are the significant hypothesis pairs from `analytics.py`, phrased per metric in `X_PHRASE` / `Y_NOUN`.
 
 ### 6. Serve (`dashboard/server.py`)
 

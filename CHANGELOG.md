@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The local server no longer shuts down while a sync is running
 - Cache files are written atomically
 - The app is now called **Pulso**, with its own icon (`assets/icon.svg` → `icon.icns`) in the macOS bundle, page header and favicon
+- Dashboard redesigned for readability: five sections instead of eight (Summary, Training, Recovery & sleep, Year by year, Activities); a headline sentence and a "How are you doing lately?" check against your own normal range; findings written as plain sentences instead of r/ρ/p values; one explanation line per metric; no dual-axis charts, no correlation matrix, no CTL/ATL/TSB/ACWR jargon; a colour-vision-safe palette with separate light and dark steps
 - `--window` opens it as a standalone app window (Chrome, Edge or Brave) with a private browser profile; the macOS app uses it
 
 ## [1.2.0] - 2026-10-22
