@@ -2,6 +2,13 @@
 
 import sys
 
+USAGE = """\
+Usage:
+  garmin-connect-mcp                       run the MCP server on stdio
+  garmin-connect-mcp auth [--save-password]  sign in to Garmin Connect
+  garmin-connect-mcp dashboard [options]   sync your history and open the dashboard
+                                           (see: garmin-connect-mcp dashboard --help)"""
+
 
 def main() -> None:
     """Run the MCP server or a supported subcommand."""
@@ -13,18 +20,24 @@ def main() -> None:
         server_main()
         return
 
-    if args and args[0] == "auth" and set(args[1:]) <= {"--save-password"}:
+    if args[0] == "auth" and set(args[1:]) <= {"--save-password"}:
         from .scripts.setup_auth import main as auth_main
 
         auth_main(save_password="--save-password" in args)
         return
 
+    if args[0] == "dashboard":
+        from .dashboard.cli import main as dashboard_main
+
+        dashboard_main(args[1:])
+        return
+
     if args[0] in {"-h", "--help", "help"}:
-        print("Usage: garmin-connect-mcp [auth [--save-password]]")
+        print(USAGE)
         return
 
     print(f"Unknown command: {args[0]}", file=sys.stderr)
-    print("Usage: garmin-connect-mcp [auth [--save-password]]", file=sys.stderr)
+    print(USAGE, file=sys.stderr)
     sys.exit(2)
 
 

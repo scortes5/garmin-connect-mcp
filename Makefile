@@ -76,6 +76,26 @@ run: ## Run the MCP server locally
 shell: ## Open a Python shell with the project context
 	@uv run python
 
+##@ Dashboard
+
+dashboard: ## Open the dashboard app (syncs in the background as it loads)
+	@uv run garmin-connect-mcp dashboard
+
+dashboard/offline: ## Open the dashboard from cached data only
+	@uv run garmin-connect-mcp dashboard --no-sync
+
+dashboard/static: ## Sync, then write a standalone dashboard HTML file
+	@uv run garmin-connect-mcp dashboard --static
+
+dashboard/demo: ## Open the dashboard with synthetic data (no account needed)
+	@uv run garmin-connect-mcp dashboard --demo
+
+dashboard/full: ## Open the dashboard app and re-download all history
+	@uv run garmin-connect-mcp dashboard --full
+
+app: ## Install the macOS "Pulso" app in ~/Applications
+	@uv run garmin-connect-mcp dashboard install-app
+
 ##@ Docker
 
 docker/build: ## Build Docker image locally

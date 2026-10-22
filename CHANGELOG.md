@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-22
+
+### Changed
+
+- `garmin-connect-mcp dashboard` now opens the dashboard as a local app: the page loads instantly from the cache and syncs with Garmin in the background, with live progress in the top bar, then refreshes itself with the new data. The old write-a-file behaviour is `--static` (or `--output FILE`); `--serve` is accepted but no longer needed
+- First run shows a progress screen per data source instead of an empty page; sync failures (e.g. expired login) are shown in a banner while saved data stays visible
+- The local server no longer shuts down while a sync is running
+- Cache files are written atomically
+- The app is now called **Pulso**, with its own icon (`assets/icon.svg` → `icon.icns`) in the macOS bundle, page header and favicon
+- Dashboard redesigned for readability: five sections instead of eight (Summary, Training, Recovery & sleep, Year by year, Activities); a headline sentence and a "How are you doing lately?" check against your own normal range; findings written as plain sentences instead of r/ρ/p values; one explanation line per metric; no dual-axis charts, no correlation matrix, no CTL/ATL/TSB/ACWR jargon; a colour-vision-safe palette with separate light and dark steps
+- `--window` opens it as a standalone app window (Chrome, Edge or Brave) with a private browser profile; the macOS app uses it
+
+## [1.2.0] - 2026-10-22
+
+### Added
+
+- `garmin-connect-mcp dashboard`: downloads your whole Garmin history into a private local cache and opens a self-contained HTML dashboard (overview, training, recovery, sleep, fitness, year-over-year, correlations, activities) with a period selector for the last 12 months, each year or all history
+- Incremental sync: past windows are cached once; only the last 7 days and new data are fetched again
+- Correlation engine: matrix of 18 daily metrics plus 24 lagged hypotheses (e.g. training load → next-night HRV) with Pearson r, Spearman ρ, p-value and quartile comparisons, per year
+- `dashboard --serve`: local server bound to 127.0.0.1 with an in-page sync button and idle shutdown
+- `dashboard install-app`: double-clickable macOS app
+- `dashboard --demo`: synthetic data through the real pipeline, no account needed
+- Spanish/English UI, light/dark theme, works offline (Chart.js 4.4.1 vendored, MIT)
+- `docs/ARCHITECTURE.md`
+
+### Fixed
+
+- `__version__` now matches the package version
+
 ## [1.1.0] - 2026-10-22
 
 Fork of eddmann/garmin-connect-mcp maintained at scortes5/garmin-connect-mcp.
@@ -58,6 +87,7 @@ Fork of eddmann/garmin-connect-mcp maintained at scortes5/garmin-connect-mcp.
 - `garmin-connect-mcp auth` interactive authentication setup with MFA token persistence
 - Docker image support via GitHub Container Registry
 
+[1.2.0]: https://github.com/scortes5/garmin-connect-mcp/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/scortes5/garmin-connect-mcp/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/eddmann/garmin-connect-mcp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/eddmann/garmin-connect-mcp/releases/tag/v1.0.0

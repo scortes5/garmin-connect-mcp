@@ -74,3 +74,6 @@ GarminExports/
 exports/
 data/
 *.log
+
+# Local agent tooling
+.claude/
