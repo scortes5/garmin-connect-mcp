@@ -52,7 +52,9 @@ ATHLETE_SOURCE = "strava_athlete"
 
 
 class StravaError(RuntimeError):
-    pass
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
 
 
 class RateLimited(StravaError):
@@ -230,7 +232,7 @@ class StravaAPI:
         if res.status_code == 401:
             raise NotConnected("Strava access was revoked. Connect again from the dashboard.")
         if res.status_code >= 400:
-            raise StravaError(f"Strava {path}: HTTP {res.status_code}")
+            raise StravaError(f"Strava {path}: HTTP {res.status_code}", res.status_code)
         return res.json()
 
 
@@ -367,7 +369,15 @@ def sync_strava(
         elif kind == "detail":
             cache.put_doc(DETAIL_SOURCE, str(arg), strip_activity(api.get(f"/activities/{arg}")))
         elif kind == "zones_of":
-            cache.put_doc(ZONES_SOURCE, str(arg), api.get(f"/activities/{arg}/zones"))
+            try:
+                zones = api.get(f"/activities/{arg}/zones")
+            except StravaError as exc:
+                # A definite "no" (e.g. zones not available for this account or activity) is
+                # remembered as "no zones", or every sync would spend its budget asking again.
+                if exc.status not in (402, 403, 404):
+                    raise
+                zones = []
+            cache.put_doc(ZONES_SOURCE, str(arg), zones)
 
     def label(step: tuple[str, Any]) -> str:
         kind, arg = step

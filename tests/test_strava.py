@@ -42,6 +42,7 @@ class FakeStrava:
         self.token_posts: list[dict[str, list[str]]] = []
         self.short_limit = short_limit
         self.revoked = False
+        self.zones_status = 200
         garmin_ride = date(2025, 3, 13)  # FakeGarmin trains on days with ordinal % 3 == 0
         assert FakeGarmin.load(garmin_ride)
         self.activities = [
@@ -125,6 +126,8 @@ class FakeStrava:
                 < before
             ][(page - 1) * 200 : page * 200]
         elif path.endswith("/zones"):
+            if self.zones_status != 200:
+                return httpx.Response(self.zones_status, json={}, headers=headers)
             body = [
                 {
                     "type": "heartrate",
@@ -274,6 +277,20 @@ class TestSync:
             pause=0,
         )  # fmt: skip
         assert second.pending_details == 0
+
+    def test_refused_activity_zones_are_not_asked_for_again(self, cache):
+        _connect(cache)
+        refusing = FakeStrava()
+        refusing.zones_status = 402
+        report = sync_strava(
+            StravaAPI(cache, http=refusing.client()), cache, first_year=2024, today=TODAY, pause=0
+        )
+        assert report.errors == [] and report.pending_details == 0
+
+        again = FakeStrava()
+        sync_strava(StravaAPI(cache, http=again.client()), cache, first_year=2024, today=TODAY,
+                    pause=0)  # fmt: skip
+        assert not any(p.endswith("/zones") and p != "/athlete/zones" for p in again.requests)
 
 
 class TestMerge:
