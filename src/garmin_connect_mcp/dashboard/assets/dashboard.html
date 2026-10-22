@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Garmin Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23f97316'/%3E%3Cpath d='M6 19h5l3-8 4 13 3-7h5' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>/*__STYLES__*/</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M6 19h5l3-8 4 13 3-7h5"/></svg>
+    <div>
+      <strong>Garmin Dashboard</strong>
+      <span id="sync-info" class="muted"></span>
+    </div>
+  </div>
+  <div class="controls">
+    <div id="scopes" class="chips" role="tablist" aria-label="Period"></div>
+    <button id="sync-btn" class="btn primary" hidden></button>
+    <button id="lang-btn" class="btn ghost" title="Language">EN</button>
+    <button id="theme-btn" class="btn ghost" title="Theme" aria-label="Theme">◐</button>
+  </div>
+</header>
+
+<nav id="tabs" class="tabs" aria-label="Sections"></nav>
+
+<main id="main">
+  <section data-tab="overview">
+    <div id="kpis" class="kpis"></div>
+    <h2 data-i18n="insights"></h2>
+    <div id="insights" class="insights"></div>
+    <div class="grid two">
+      <div class="card wide"><h3 data-i18n="calendar"></h3><div id="calendar" class="calendar"></div></div>
+      <div class="card wide"><h3 data-i18n="weeklyHours"></h3><div class="chart tall"><canvas id="c-weekly"></canvas></div></div>
+    </div>
+  </section>
+
+  <section data-tab="training">
+    <div class="grid two">
+      <div class="card"><h3 data-i18n="monthlyHours"></h3><div class="chart"><canvas id="c-monthly"></canvas></div></div>
+      <div class="card"><h3 data-i18n="sportMix"></h3><div id="sport-table"></div></div>
+      <div class="card wide"><h3 data-i18n="pmc"></h3><p class="hint" data-i18n="pmcHint"></p><div class="chart tall"><canvas id="c-pmc"></canvas></div></div>
+      <div class="card"><h3 data-i18n="acwrTitle"></h3><p class="hint" data-i18n="acwrHint"></p><div class="chart"><canvas id="c-acwr"></canvas></div></div>
+      <div class="card"><h3 data-i18n="zones"></h3><div class="chart"><canvas id="c-zones"></canvas></div></div>
+      <div class="card"><h3 data-i18n="teScatter"></h3><div class="chart"><canvas id="c-te"></canvas></div></div>
+      <div class="card"><h3 data-i18n="powerCurve"></h3><p class="hint" data-i18n="powerHint"></p><div class="chart"><canvas id="c-power"></canvas></div></div>
+      <div class="card wide"><h3 data-i18n="records"></h3><div id="records" class="records"></div></div>
+    </div>
+  </section>
+
+  <section data-tab="recovery">
+    <div id="kpis-recovery" class="kpis"></div>
+    <div class="grid two">
+      <div class="card"><h3 data-i18n="hrvTitle"></h3><p class="hint" data-i18n="hrvHint"></p><div class="chart"><canvas id="c-hrv"></canvas></div></div>
+      <div class="card"><h3 data-i18n="rhrTitle"></h3><div class="chart"><canvas id="c-rhr"></canvas></div></div>
+      <div class="card"><h3 data-i18n="bbTitle"></h3><div class="chart"><canvas id="c-bb"></canvas></div></div>
+      <div class="card"><h3 data-i18n="stressTitle"></h3><div class="chart"><canvas id="c-stress"></canvas></div></div>
+      <div class="card"><h3 data-i18n="readinessTitle"></h3><div class="chart"><canvas id="c-ready"></canvas></div></div>
+      <div class="card"><h3 data-i18n="respTitle"></h3><div class="chart"><canvas id="c-resp"></canvas></div></div>
+    </div>
+  </section>
+
+  <section data-tab="sleep">
+    <div id="kpis-sleep" class="kpis"></div>
+    <div class="grid two">
+      <div class="card wide"><h3 data-i18n="stagesTitle"></h3><div class="chart tall"><canvas id="c-stages"></canvas></div></div>
+      <div class="card"><h3 data-i18n="sleepScoreTitle"></h3><div class="chart"><canvas id="c-sleepscore"></canvas></div></div>
+      <div class="card"><h3 data-i18n="scheduleTitle"></h3><p class="hint" data-i18n="scheduleHint"></p><div class="chart"><canvas id="c-schedule"></canvas></div></div>
+      <div class="card"><h3 data-i18n="weekdayTitle"></h3><div class="chart"><canvas id="c-weekday"></canvas></div></div>
+      <div class="card"><h3 data-i18n="sleepVsLoad"></h3><p class="hint" data-i18n="sleepVsLoadHint"></p><div class="chart"><canvas id="c-sleepload"></canvas></div></div>
+    </div>
+  </section>
+
+  <section data-tab="fitness">
+    <div class="grid two">
+      <div class="card"><h3 data-i18n="vo2Title"></h3><div class="chart"><canvas id="c-vo2"></canvas></div></div>
+      <div class="card"><h3 data-i18n="enduranceTitle"></h3><div class="chart"><canvas id="c-endurance"></canvas></div></div>
+      <div class="card"><h3 data-i18n="stepsTitle"></h3><div class="chart"><canvas id="c-steps"></canvas></div></div>
+      <div class="card"><h3 data-i18n="imTitle"></h3><p class="hint" data-i18n="imHint"></p><div class="chart"><canvas id="c-im"></canvas></div></div>
+      <div class="card"><h3 data-i18n="weightTitle"></h3><div class="chart"><canvas id="c-weight"></canvas></div></div>
+      <div class="card"><h3 data-i18n="kcalTitle"></h3><div class="chart"><canvas id="c-kcal"></canvas></div></div>
+    </div>
+  </section>
+
+  <section data-tab="years">
+    <div class="card wide">
+      <div class="card-head">
+        <h3 data-i18n="cumulative"></h3>
+        <select id="cum-metric" class="select"></select>
+      </div>
+      <div class="chart tall"><canvas id="c-cumulative"></canvas></div>
+    </div>
+    <div class="card wide"><h3 data-i18n="yearTable"></h3><div id="year-table" class="table-wrap"></div></div>
+    <div class="card wide"><h3 data-i18n="monthHeat"></h3><div id="month-heat" class="table-wrap"></div></div>
+  </section>
+
+  <section data-tab="correlations">
+    <p class="lead" data-i18n="corrLead"></p>
+    <div id="corr-insights" class="insights"></div>
+    <div class="grid two">
+      <div class="card">
+        <h3 data-i18n="matrix"></h3>
+        <p class="hint" data-i18n="matrixHint"></p>
+        <div id="matrix" class="table-wrap"></div>
+      </div>
+      <div class="card">
+        <div class="card-head wrap">
+          <h3 data-i18n="explore"></h3>
+          <div class="pair-picker">
+            <select id="px" class="select"></select>
+            <select id="plag" class="select"></select>
+            <select id="py" class="select"></select>
+          </div>
+        </div>
+        <div class="chart tall"><canvas id="c-scatter"></canvas></div>
+        <div id="pair-stats" class="pair-stats"></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-tab="activities">
+    <div class="card wide">
+      <div class="card-head wrap">
+        <input id="act-search" class="input" type="search">
+        <select id="act-sport" class="select"></select>
+        <span id="act-count" class="muted"></span>
+      </div>
+      <div id="act-table" class="table-wrap"></div>
+      <div id="act-pager" class="pager"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span data-i18n="privacy"></span>
+  <span id="errors"></span>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>/*__CHART_JS__*/</script>
+<script>
+window.GARMIN_DATA = /*__DATA__*/null;
+window.GARMIN_LIVE = /*__LIVE__*/false;
+</script>
+<script>/*__APP_JS__*/</script>
+</body>
+</html>

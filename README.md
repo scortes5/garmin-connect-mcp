@@ -1,28 +1,38 @@
 <h1 align="center">Garmin Connect MCP</h1>
 
 <p align="center">
-  Your Garmin data inside Claude and any MCP client: activities, sleep, HRV, training load,<br/>
-  power and heart-rate streams, FTP and thresholds. Runs on your computer, on your own account.
+  Your Garmin data inside Claude and any MCP client — and a private dashboard of your whole<br/>
+  training and health history, with correlations you won't find in Garmin Connect.<br/>
+  Runs on your computer, on your own account.
 </p>
 
 <p align="center">
   <a href="https://github.com/scortes5/garmin-connect-mcp/actions/workflows/test.yml"><img alt="CI" src="https://github.com/scortes5/garmin-connect-mcp/actions/workflows/test.yml/badge.svg"></a>
   <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-3776ab">
   <img alt="Tools" src="https://img.shields.io/badge/MCP%20tools-24-f97316">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-73%20passing-22c55e">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-101%20passing-22c55e">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/scortes5/garmin-connect-mcp?color=blue"></a>
   <a href="https://github.com/scortes5/garmin-connect-mcp/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/scortes5/garmin-connect-mcp?style=social"></a>
 </p>
 
 <p align="center">
   <a href="#installation"><b>Install</b></a> ·
+  <a href="#dashboard"><b>Dashboard</b></a> ·
   <a href="#tools">Tools</a> ·
   <a href="#privacy-and-security">Privacy</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="docs/ARCHITECTURE.md">Architecture</a> ·
   <a href="SECURITY.md">Security</a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/overview.jpg" alt="Garmin Dashboard overview: yearly KPIs, findings from correlations, training calendar and weekly hours by sport" width="900">
+  <br/><sub>Dashboard running on <code>--demo</code> data.</sub>
+</p>
+
 Garmin Connect MCP is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets Claude (or any MCP client) read your Garmin Connect account. Ask in plain language — *"how did my long ride go?"*, *"am I recovered enough for intervals today?"*, *"chart HR and power for last Saturday"* — and the model pulls the real numbers instead of guessing.
+
+It also ships a **local dashboard**: one command downloads your entire history (activities, sleep, HRV, Body Battery, stress, readiness, VO₂ max, training status, weight) and opens it as an interactive page where you can move back year by year and see which of your own numbers move together.
 
 It talks to Garmin Connect with **your own login**, stores nothing on any server, and keeps your tokens and exported files readable only by your user.
 
@@ -35,12 +45,13 @@ It talks to Garmin Connect with **your own login**, stores nothing on any server
 ## Contents
 
 - [What you can do](#what-you-can-do)
+- [Dashboard](#dashboard)
 - [How it works](#how-it-works)
 - [Installation](#installation)
 - [Connect it to Claude](#connect-it-to-claude)
 - [Tools](#tools)
 - [Resources and prompts](#resources-and-prompts)
-- [Building a dashboard](#building-a-dashboard)
+- [Building your own charts](#building-your-own-charts)
 - [What this fork changes](#what-this-fork-changes)
 - [Privacy and security](#privacy-and-security)
 - [Development](#development)
@@ -75,6 +86,58 @@ It talks to Garmin Connect with **your own login**, stores nothing on any server
 | Logins to Garmin | One per tool call | One per server process |
 | OAuth scopes and profile photo URLs in responses | Included | Stripped |
 | `garminconnect` library | 0.3.3 | 0.3.19 (survives Garmin's 2026 Cloudflare changes) |
+
+## Dashboard
+
+```bash
+garmin-connect-mcp auth          # once
+garmin-connect-mcp dashboard     # sync new data, build, open in your browser
+```
+
+The first run downloads every year since your oldest activity (a few hundred requests, a couple of minutes, deliberately paced). After that, only the last week and anything new is fetched, so a refresh takes seconds. Try it without an account: `garmin-connect-mcp dashboard --demo`.
+
+| Section | What you see |
+|---|---|
+| **Overview** | KPIs for the period with change vs the same period a year earlier, the strongest findings from your data, a training calendar and weekly hours by sport. |
+| **Training** | Monthly hours by sport, fitness / fatigue / form (CTL, ATL, TSB), Garmin's acute:chronic load ratio, time in HR zones, aerobic vs anaerobic training effect, power curve per year, records. |
+| **Recovery** | Overnight HRV against your baseline band, resting HR, Body Battery, stress, training readiness, respiration and SpO₂ — daily values with a 7-day average. |
+| **Sleep** | Stages, score, bedtime and wake-time regularity, sleep by weekday, and how the night after easy vs hard days looks. |
+| **Fitness & health** | VO₂ max (running and cycling), endurance score, steps, weekly intensity minutes vs the WHO 150-minute target, weight, calories. |
+| **Years** | Cumulative distance / hours / elevation / load per year on one chart, a year-over-year table and a month × year heatmap. |
+| **Correlations** | Plain-language findings, a clickable correlation matrix and a scatter explorer for any pair of metrics, same day or next day. |
+| **Activities** | Every activity, searchable, filterable by sport and sortable by any column. |
+
+Every view follows the period selector: **last 12 months**, **any single year**, or **all history**.
+
+<p align="center">
+  <img src="docs/screenshots/correlations.jpg" alt="Correlations view: findings, matrix and scatter explorer" width="900">
+</p>
+
+### Correlations
+
+Your history is turned into one row per day, then tested two ways:
+
+- **A matrix** of 18 daily metrics (training load, steps, HRV, resting HR, sleep score and stages, bedtime, stress, Body Battery, readiness, form…), Pearson r.
+- **24 lagged hypotheses** — the questions athletes actually ask: does a hard day lower *tonight's* HRV? Does going to bed late cost sleep score? Does a high acute:chronic ratio show up in readiness? Each reports Pearson r, Spearman ρ, p-value, number of days, and the average outcome on your top-quartile vs bottom-quartile days.
+
+Only relationships with at least 20 days of data and p < 0.05 are shown as findings. Rest days count as zero training load, so load is compared against rest, not just easy days against hard ones. These are associations in your own data, not medical advice and not proof of cause.
+
+### Options
+
+| Command | |
+|---|---|
+| `garmin-connect-mcp dashboard` | Sync, write `~/.garmin-dashboard/dashboard.html`, open it. |
+| `… --no-sync` | Offline: rebuild from the cache. |
+| `… --full` | Re-download all history (after editing old activities). |
+| `… --since 2022` | Start from a given year. |
+| `… --output FILE` / `--no-open` | Write elsewhere / don't open the browser. |
+| `… --serve` | Local server on `127.0.0.1` with a **Sync** button in the page; stops itself a couple of minutes after the last tab closes. |
+| `… --demo` | Synthetic athlete, no account needed. Never touches your real cache. |
+| `garmin-connect-mcp dashboard install-app` | macOS: installs **Garmin Dashboard.app** in `~/Applications` — double-click it to sync and open. |
+
+From a checkout, the same commands are `make dashboard`, `make dashboard/serve`, `make dashboard/demo` and `make app`.
+
+The page is a single file with Chart.js inlined: it opens offline and loads nothing from the internet. It contains your health history, so it is written `0600` and lives outside the repository. Spanish and English, light and dark theme.
 
 ---
 
@@ -305,7 +368,7 @@ Export the original FIT file of yesterday's run.
 
 ---
 
-## Building a dashboard
+## Building your own charts
 
 The new tools are shaped for charts:
 
@@ -364,6 +427,7 @@ Full detail in the [Changelog](CHANGELOG.md).
 - **No location unless you ask.** Streams leave out latitude and longitude by default: the start and end of most activities is your home.
 - **Less account detail in answers.** OAuth scopes and profile photo URLs are removed from every response before the model sees it.
 - **Writes are labelled.** Tools that change your Garmin account (`manage_weight_data`, `log_health_data`, `manage_workouts` upload) are marked as not read-only, so clients ask before running them.
+- **Dashboard data stays local.** Synced data lives in `~/.garmin-dashboard/` (folders `0700`, files `0600`; override with `GARMIN_DASHBOARD_DIR`). Owner name, account roles and GPS coordinates are dropped from activities before they are cached. `--serve` listens on `127.0.0.1` only and rejects requests from other hosts or origins.
 - **Repository hygiene.** `.gitignore` excludes tokens, `.env` files, `.fit/.gpx/.tcx`, databases and exports; CI runs a secret scan on every push. Tests use made-up data only.
 
 Found a problem? See [SECURITY.md](SECURITY.md).
@@ -381,6 +445,8 @@ make auth          # sign in from a checkout
 make run           # start the server on stdio
 ```
 
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together and the full data dictionary.
+
 Tests are behaviour tests: they drive the real MCP server through an in-memory client and fake Garmin only at the library boundary.
 
 ```
@@ -391,6 +457,7 @@ src/garmin_connect_mcp/
   auth.py              config, token-only auth, private file writes
   response_builder.py  compact JSON responses, field redaction
   tools/               one module per area (activities, training, performance_data…)
+  dashboard/           sync → cache → dataset → correlations → self-contained HTML
 tests/                 behaviour and unit tests
 ```
 

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-22
+
+### Added
+
+- `garmin-connect-mcp dashboard`: downloads your whole Garmin history into a private local cache and opens a self-contained HTML dashboard (overview, training, recovery, sleep, fitness, year-over-year, correlations, activities) with a period selector for the last 12 months, each year or all history
+- Incremental sync: past windows are cached once; only the last 7 days and new data are fetched again
+- Correlation engine: matrix of 18 daily metrics plus 24 lagged hypotheses (e.g. training load → next-night HRV) with Pearson r, Spearman ρ, p-value and quartile comparisons, per year
+- `dashboard --serve`: local server bound to 127.0.0.1 with an in-page sync button and idle shutdown
+- `dashboard install-app`: double-clickable macOS app
+- `dashboard --demo`: synthetic data through the real pipeline, no account needed
+- Spanish/English UI, light/dark theme, works offline (Chart.js 4.4.1 vendored, MIT)
+- `docs/ARCHITECTURE.md`
+
+### Fixed
+
+- `__version__` now matches the package version
+
 ## [1.1.0] - 2026-10-22
 
 Fork of eddmann/garmin-connect-mcp maintained at scortes5/garmin-connect-mcp.
@@ -58,6 +75,7 @@ Fork of eddmann/garmin-connect-mcp maintained at scortes5/garmin-connect-mcp.
 - `garmin-connect-mcp auth` interactive authentication setup with MFA token persistence
 - Docker image support via GitHub Container Registry
 
+[1.2.0]: https://github.com/scortes5/garmin-connect-mcp/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/scortes5/garmin-connect-mcp/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/eddmann/garmin-connect-mcp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/eddmann/garmin-connect-mcp/releases/tag/v1.0.0

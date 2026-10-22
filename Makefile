@@ -76,6 +76,26 @@ run: ## Run the MCP server locally
 shell: ## Open a Python shell with the project context
 	@uv run python
 
+##@ Dashboard
+
+dashboard: ## Sync new Garmin data and open the dashboard
+	@uv run garmin-connect-mcp dashboard
+
+dashboard/offline: ## Open the dashboard from cached data only
+	@uv run garmin-connect-mcp dashboard --no-sync
+
+dashboard/serve: ## Run the dashboard locally with an in-page sync button
+	@uv run garmin-connect-mcp dashboard --serve
+
+dashboard/demo: ## Open the dashboard with synthetic data (no account needed)
+	@uv run garmin-connect-mcp dashboard --demo
+
+dashboard/full: ## Re-download all history, then open the dashboard
+	@uv run garmin-connect-mcp dashboard --full
+
+app: ## Install the macOS "Garmin Dashboard" app in ~/Applications
+	@uv run garmin-connect-mcp dashboard install-app
+
 ##@ Docker
 
 docker/build: ## Build Docker image locally
