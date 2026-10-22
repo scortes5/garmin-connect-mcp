@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/overview.jpg" alt="Garmin Dashboard overview: yearly KPIs, findings from correlations, training calendar and weekly hours by sport" width="900">
+  <img src="docs/screenshots/overview.jpg" alt="Pulso summary: a sentence with the period totals, four key numbers with trends, a recovery check against your normal range and weekly hours by sport" width="900">
   <br/><sub>Dashboard running on <code>--demo</code> data.</sub>
 </p>
 
@@ -107,7 +107,13 @@ The dashboard is a small local app: it opens straight away with what is already 
 Every view follows the period selector: **last 12 months**, **any single year**, or **all history**.
 
 <p align="center">
-  <img src="docs/screenshots/correlations.jpg" alt="Correlations view: findings, matrix and scatter explorer" width="900">
+  <img src="docs/screenshots/training.jpg" alt="Training: hours per sport, month by month, fitness and fatigue, heart-rate zones, training calendar and best marks" width="290">
+  <img src="docs/screenshots/health.jpg" alt="Recovery and sleep: one card per metric with an explanation and weekly trend, sleep stages, VO2 max and weight" width="290">
+  <img src="docs/screenshots/history.jpg" alt="Year by year: running totals per year and a year summary table" width="290">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/findings.jpg" alt="Findings written as plain sentences, each with a two-bar comparison" width="900">
 </p>
 
 ### Correlations
