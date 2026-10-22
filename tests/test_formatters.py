@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from garmin_connect_mcp.formatters import (
+from pulso.formatters import (
     format_date,
     format_datetime,
     format_distance,

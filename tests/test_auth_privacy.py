@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-import garmin_connect_mcp.scripts.setup_auth as setup_auth
-from garmin_connect_mcp.auth import GarminConfig, can_authenticate, write_private_file
+import pulso.scripts.setup_auth as setup_auth
+from pulso.auth import GarminConfig, can_authenticate, write_private_file
 
 
 def test_private_files_are_owner_only(tmp_path):

@@ -35,7 +35,7 @@
 1. **A Garmin Connect MCP server** — a [Model Context Protocol](https://modelcontextprotocol.io) server that lets Claude (or any MCP client) read your Garmin Connect account. Ask in plain language — *"how did my long ride go?"*, *"am I recovered enough for intervals today?"*, *"chart HR and power for last Saturday"* — and the model pulls the real numbers instead of guessing.
 2. **The Pulso dashboard** — a local app where one command downloads your entire history (activities, sleep, HRV, Body Battery, stress, readiness, VO₂ max, training status, weight) — and, if you connect it, your **Strava** zones, best efforts, splits, segments and gear — and opens it as an interactive page. Filter any view by dates, sports and source, tap any number to see how it changed over time and the exact rows behind it, and browse or export every table as CSV.
 
-Both are installed as one Python package, `garmin-connect-mcp`, which is also the command you run (`garmin-connect-mcp` for the MCP server, `garmin-connect-mcp dashboard` for Pulso), so existing MCP client configurations keep working.
+Both come in one Python package with one command: `pulso` runs the MCP server, `pulso dashboard` opens the dashboard and `pulso auth` signs you in to Garmin.
 
 It talks to Garmin Connect (and Strava, if you connect it) with **your own login**, stores nothing on any server, and keeps your tokens and exported files readable only by your user.
 
@@ -93,11 +93,11 @@ It talks to Garmin Connect (and Strava, if you connect it) with **your own login
 ## Dashboard
 
 ```bash
-garmin-connect-mcp auth          # once
-garmin-connect-mcp dashboard     # open the app; it syncs in the background as it loads
+pulso auth          # once
+pulso dashboard     # open the app; it syncs in the background as it loads
 ```
 
-The dashboard is a small local app: it opens straight away with what is already cached and syncs with Garmin in the background, with a progress indicator in the top bar, then refreshes itself when new data lands. The first run downloads every year since your oldest activity (a few hundred requests, a couple of minutes, deliberately paced) and shows a progress screen while it does. After that, only the last week and anything new is fetched, so a refresh takes seconds. If the sync fails (for example, the Garmin login expired) the app says so and keeps showing your saved data. Try it without an account: `garmin-connect-mcp dashboard --demo`.
+The dashboard is a small local app: it opens straight away with what is already cached and syncs with Garmin in the background, with a progress indicator in the top bar, then refreshes itself when new data lands. The first run downloads every year since your oldest activity (a few hundred requests, a couple of minutes, deliberately paced) and shows a progress screen while it does. After that, only the last week and anything new is fetched, so a refresh takes seconds. If the sync fails (for example, the Garmin login expired) the app says so and keeps showing your saved data. Try it without an account: `pulso dashboard --demo`.
 
 | Section | What you see |
 |---|---|
@@ -129,12 +129,12 @@ The dashboard is a small local app: it opens straight away with what is already 
 ### Strava
 
 ```bash
-garmin-connect-mcp dashboard strava     # or the "Connect Strava" card inside the app
+pulso dashboard strava     # or the "Connect Strava" card inside the app
 ```
 
 Strava adds what Garmin does not give the dashboard: your heart-rate and power zones as set on Strava and the time spent in them per activity, running best efforts (400 m … marathon) with PR ranks, per-kilometre splits, segment efforts, laps, relative effort, kudos and achievements, the device and the gear of each activity, and the total mileage of your bikes and shoes. Activities recorded somewhere else (a phone, Zwift, another watch) are added too.
 
-To connect, create your own API application at [strava.com/settings/api](https://www.strava.com/settings/api) (any name and website; *Authorization Callback Domain*: `localhost`), then paste its Client ID and Client Secret into the app or the terminal and authorize. Pulso asks for `read,activity:read_all,profile:read_all` and nothing else; the tokens are stored `0600` in `~/.garmin-dashboard/strava.json` and refreshed automatically. `garmin-connect-mcp dashboard strava --disconnect` forgets them.
+To connect, create your own API application at [strava.com/settings/api](https://www.strava.com/settings/api) (any name and website; *Authorization Callback Domain*: `localhost`), then paste its Client ID and Client Secret into the app or the terminal and authorize. Pulso asks for `read,activity:read_all,profile:read_all` and nothing else; the tokens are stored `0600` in `~/.garmin-dashboard/strava.json` and refreshed automatically. `pulso dashboard strava --disconnect` forgets them.
 
 Strava then syncs with Garmin every time the app opens. An activity Garmin uploaded to Strava is recognised by its Garmin ID (or, failing that, by its start time and sport) and **enriched**, never counted twice. Strava allows 100 requests per 15 minutes and 1,000 per day: activity lists cost one request per 200 activities, full detail two requests per activity, so a long history is completed newest first over several syncs; the Data tab says how many are still pending. Maps, coordinates, your name and photos are removed before anything is written to disk.
 
@@ -151,7 +151,7 @@ Findings are recomputed in the page for whatever period the filter selects. Only
 
 | Command | |
 |---|---|
-| `garmin-connect-mcp dashboard` | Open the app on `127.0.0.1`; it syncs on every open (skipped if it synced in the last 5 minutes) and has a **Sync** button. Stops itself a couple of minutes after the last tab closes. |
+| `pulso dashboard` | Open the app on `127.0.0.1`; it syncs on every open (skipped if it synced in the last 5 minutes) and has a **Sync** button. Stops itself a couple of minutes after the last tab closes. |
 | `… --no-sync` | Offline: show the cache, no automatic sync. |
 | `… --full` | Re-download all history (after editing old activities). |
 | `… --since 2022` | Start from a given year. |
@@ -159,8 +159,8 @@ Findings are recomputed in the page for whatever period the filter selects. Only
 | `… --output FILE` / `--no-open` | Write the static page elsewhere (implies `--static`) / don't open the browser. |
 | `… --demo` | Synthetic athlete, no account needed. Never touches your real cache. |
 | `… --window` | Open in its own app window (Chrome, Edge or Brave) instead of a browser tab. |
-| `garmin-connect-mcp dashboard strava` | Connect your Strava account (guided). `--disconnect` forgets it; downloaded data stays. |
-| `garmin-connect-mcp dashboard install-app` | macOS: installs **Pulso.app** (with its icon) in `~/Applications` — open it from Launchpad, Spotlight or the Dock; it runs the app in its own window. |
+| `pulso dashboard strava` | Connect your Strava account (guided). `--disconnect` forgets it; downloaded data stays. |
+| `pulso dashboard install-app` | macOS: installs **Pulso.app** (with its icon) in `~/Applications` — open it from Launchpad, Spotlight or the Dock; it runs the app in its own window. |
 
 From a checkout, the same commands are `make dashboard`, `make dashboard/static`, `make dashboard/demo`, `make dashboard/strava` and `make app`. The demo includes a simulated Strava account.
 
@@ -173,7 +173,7 @@ The page is a single file with Chart.js inlined: it opens offline and loads noth
 ```mermaid
 flowchart LR
     W[Garmin watch / Edge] -->|sync| GC[(Garmin Connect)]
-    GC <-->|HTTPS, your OAuth tokens| S[garmin-connect-mcp<br/>on your computer]
+    GC <-->|HTTPS, your OAuth tokens| S[pulso<br/>on your computer]
     S <-->|stdio, MCP| C[Claude Desktop<br/>or any MCP client]
     S -.->|export_activity_file| F[~/GarminExports<br/>0600 files]
     T[~/.garminconnect<br/>OAuth tokens, 0600] --- S
@@ -192,7 +192,7 @@ Requirements: [uv](https://docs.astral.sh/uv/) (it installs Python 3.12+ for you
 ### 1. Sign in once
 
 ```bash
-uvx --from git+https://github.com/scortes5/pulso garmin-connect-mcp auth
+uvx --from git+https://github.com/scortes5/pulso pulso auth
 ```
 
 - Asks for your Garmin email and password (the password is **hidden** while you type) and for the MFA code if your account has one.
@@ -211,12 +211,12 @@ export GARMIN_EXPORT_DIR="$HOME/GarminExports"   # default
 
 ```bash
 git clone https://github.com/scortes5/pulso && cd pulso
-docker build -t garmin-connect-mcp .
-touch garmin-connect-mcp.env && mkdir -p ~/.garminconnect-docker
+docker build -t pulso .
+touch pulso.env && mkdir -p ~/.garminconnect-docker
 docker run -it --rm \
-  -v "$PWD/garmin-connect-mcp.env:/app/.env" \
+  -v "$PWD/pulso.env:/app/.env" \
   -v "$HOME/.garminconnect-docker:/root/.garminconnect" \
-  garmin-connect-mcp auth
+  pulso auth
 ```
 
 ### Option: from source
@@ -241,7 +241,7 @@ Open **Claude Desktop → Settings → Developer → Edit Config** (`~/Library/A
       "args": [
         "--from",
         "git+https://github.com/scortes5/pulso",
-        "garmin-connect-mcp"
+        "pulso"
       ]
     }
   }
@@ -256,7 +256,7 @@ Open **Claude Desktop → Settings → Developer → Edit Config** (`~/Library/A
   "mcpServers": {
     "garmin": {
       "command": "uv",
-      "args": ["run", "--directory", "/ABSOLUTE/PATH/TO/garmin-connect-mcp", "garmin-connect-mcp"]
+      "args": ["run", "--directory", "/ABSOLUTE/PATH/TO/pulso", "pulso"]
     }
   }
 }
@@ -273,10 +273,10 @@ Open **Claude Desktop → Settings → Developer → Edit Config** (`~/Library/A
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-v", "/ABSOLUTE/PATH/TO/garmin-connect-mcp.env:/app/.env",
+        "-v", "/ABSOLUTE/PATH/TO/pulso.env:/app/.env",
         "-v", "/ABSOLUTE/PATH/TO/.garminconnect-docker:/root/.garminconnect",
         "-v", "/ABSOLUTE/PATH/TO/GarminExports:/root/GarminExports",
-        "garmin-connect-mcp"
+        "pulso"
       ]
     }
   }
@@ -477,7 +477,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together
 Tests are behaviour tests: they drive the real MCP server through an in-memory client and fake Garmin only at the library boundary.
 
 ```
-src/garmin_connect_mcp/
+src/pulso/
   server.py            tools, resources and prompts registration
   middleware.py        one shared Garmin session per process
   client.py            login, token handling, error mapping

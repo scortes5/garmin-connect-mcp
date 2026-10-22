@@ -2,7 +2,7 @@
 
 import pytest
 
-from garmin_connect_mcp.pagination import (
+from pulso.pagination import (
     PaginationCursor,
     build_pagination_info,
     decode_cursor,

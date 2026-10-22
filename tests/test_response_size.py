@@ -2,8 +2,8 @@
 
 import json
 
-from garmin_connect_mcp.pagination import build_pagination_info
-from garmin_connect_mcp.response_builder import ResponseBuilder
+from pulso.pagination import build_pagination_info
+from pulso.response_builder import ResponseBuilder
 
 
 def test_json_is_compact():

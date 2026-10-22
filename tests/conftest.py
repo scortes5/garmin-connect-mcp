@@ -2,7 +2,7 @@
 
 import pytest
 
-from garmin_connect_mcp.types import HeartRateData, SleepData, StepsData, StressData
+from pulso.types import HeartRateData, SleepData, StepsData, StressData
 
 
 @pytest.fixture

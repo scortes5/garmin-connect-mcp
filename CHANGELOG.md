@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.0] - 2026-10-22
 
-The repository is now **scortes5/pulso** (formerly scortes5/garmin-connect-mcp; GitHub redirects the old URL). The Python package and the `garmin-connect-mcp` command keep their names.
+The project is now **Pulso**: the repository is `scortes5/pulso` (GitHub redirects the old `scortes5/garmin-connect-mcp` URL), the Python package is `pulso` and the command is `pulso` (`pulso auth`, `pulso dashboard`, …).
+
+### Breaking
+
+- The `garmin-connect-mcp` command is now `pulso`, and the module `garmin_connect_mcp` is now `pulso`. Update MCP client configurations (`"command": "pulso"` or `uvx --from git+https://github.com/scortes5/pulso pulso`) and re-run `pulso dashboard install-app` on macOS so Pulso.app launches the new module. Garmin tokens (`~/.garminconnect`) and dashboard data (`~/.garmin-dashboard`) stay where they are.
 
 ### Added
 

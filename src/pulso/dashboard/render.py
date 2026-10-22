@@ -8,7 +8,7 @@ from typing import Any
 
 from ..auth import write_private_file
 
-_ASSETS = resources.files("garmin_connect_mcp.dashboard") / "assets"
+_ASSETS = resources.files("pulso.dashboard") / "assets"
 
 
 def _embed_json(value: Any) -> str:

@@ -15,10 +15,10 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 import pytest
 
-from garmin_connect_mcp.dashboard.cache import ChunkCache
-from garmin_connect_mcp.dashboard.normalize import build_dataset
-from garmin_connect_mcp.dashboard.server import DashboardServer
-from garmin_connect_mcp.dashboard.strava import (
+from pulso.dashboard.cache import ChunkCache
+from pulso.dashboard.normalize import build_dataset
+from pulso.dashboard.server import DashboardServer
+from pulso.dashboard.strava import (
     NotConnected,
     StravaAPI,
     StravaError,
@@ -27,7 +27,7 @@ from garmin_connect_mcp.dashboard.strava import (
     save_credentials,
     sync_strava,
 )
-from garmin_connect_mcp.dashboard.sync import sync
+from pulso.dashboard.sync import sync
 from tests.test_dashboard import TODAY, FakeGarmin
 
 CLIENT_ID = "12345"

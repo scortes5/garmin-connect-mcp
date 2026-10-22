@@ -4,10 +4,10 @@ import sys
 
 USAGE = """\
 Usage:
-  garmin-connect-mcp                       run the MCP server on stdio
-  garmin-connect-mcp auth [--save-password]  sign in to Garmin Connect
-  garmin-connect-mcp dashboard [options]   sync your history and open the dashboard
-                                           (see: garmin-connect-mcp dashboard --help)"""
+  pulso                            run the MCP server on stdio
+  pulso auth [--save-password]     sign in to Garmin Connect
+  pulso dashboard [options]        sync your history and open the dashboard
+                                   (see: pulso dashboard --help)"""
 
 
 def main() -> None:

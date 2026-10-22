@@ -3,7 +3,7 @@
 import json
 from datetime import datetime
 
-from garmin_connect_mcp.response_builder import ResponseBuilder
+from pulso.response_builder import ResponseBuilder
 
 
 def test_format_date_with_day_datetime():

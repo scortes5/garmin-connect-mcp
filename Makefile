@@ -41,7 +41,7 @@ test/verbose: ## Run tests with verbose output
 	@uv run python -m pytest -v
 
 test/coverage: ## Run tests with coverage report
-	@uv run python -m pytest --cov=src/garmin_connect_mcp --cov-report=term-missing
+	@uv run python -m pytest --cov=src/pulso --cov-report=term-missing
 
 lint: lint/ruff lint/pyright ## Run all linting tools
 
@@ -68,10 +68,10 @@ package/check: build ## Validate built distributions
 ##@ Development
 
 auth: ## Run the Garmin authentication setup
-	@uv run garmin-connect-mcp auth
+	@uv run pulso auth
 
 run: ## Run the MCP server locally
-	@uv run garmin-connect-mcp
+	@uv run pulso
 
 shell: ## Open a Python shell with the project context
 	@uv run python
@@ -79,25 +79,25 @@ shell: ## Open a Python shell with the project context
 ##@ Dashboard
 
 dashboard: ## Open the dashboard app (syncs in the background as it loads)
-	@uv run garmin-connect-mcp dashboard
+	@uv run pulso dashboard
 
 dashboard/offline: ## Open the dashboard from cached data only
-	@uv run garmin-connect-mcp dashboard --no-sync
+	@uv run pulso dashboard --no-sync
 
 dashboard/static: ## Sync, then write a standalone dashboard HTML file
-	@uv run garmin-connect-mcp dashboard --static
+	@uv run pulso dashboard --static
 
 dashboard/demo: ## Open the dashboard with synthetic data (no account needed)
-	@uv run garmin-connect-mcp dashboard --demo
+	@uv run pulso dashboard --demo
 
 dashboard/full: ## Open the dashboard app and re-download all history
-	@uv run garmin-connect-mcp dashboard --full
+	@uv run pulso dashboard --full
 
 dashboard/strava: ## Connect your Strava account to the dashboard
-	@uv run garmin-connect-mcp dashboard strava
+	@uv run pulso dashboard strava
 
 app: ## Install the macOS "Pulso" app in ~/Applications
-	@uv run garmin-connect-mcp dashboard install-app
+	@uv run pulso dashboard install-app
 
 ##@ Docker
 
@@ -123,7 +123,7 @@ deps/list: ## Show installed dependencies
 	@uv pip list
 
 info: ## Show project information
-	@echo "Project: garmin-connect-mcp"
+	@echo "Project: pulso"
 	@echo "Version: $(VERSION)"
 	@echo "Python: $$(python --version)"
 	@echo "Image: $(IMAGE_NAME)"

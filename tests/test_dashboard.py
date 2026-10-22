@@ -14,14 +14,14 @@ from pathlib import Path
 
 import pytest
 
-from garmin_connect_mcp.dashboard.analytics import correlations, p_value, pearson, spearman
-from garmin_connect_mcp.dashboard.cache import ChunkCache
-from garmin_connect_mcp.dashboard.cli import build, install_app
-from garmin_connect_mcp.dashboard.cli import main as dashboard_main
-from garmin_connect_mcp.dashboard.normalize import build_dataset, sport_of
-from garmin_connect_mcp.dashboard.render import render_html
-from garmin_connect_mcp.dashboard.server import DashboardServer
-from garmin_connect_mcp.dashboard.sync import sync
+from pulso.dashboard.analytics import correlations, p_value, pearson, spearman
+from pulso.dashboard.cache import ChunkCache
+from pulso.dashboard.cli import build, install_app
+from pulso.dashboard.cli import main as dashboard_main
+from pulso.dashboard.normalize import build_dataset, sport_of
+from pulso.dashboard.render import render_html
+from pulso.dashboard.server import DashboardServer
+from pulso.dashboard.sync import sync
 
 TODAY = date(2025, 3, 15)
 
@@ -395,7 +395,7 @@ class TestCli:
         assert not real.exists()
 
     def test_strava_disconnect_forgets_the_tokens(self, tmp_path, monkeypatch):
-        from garmin_connect_mcp.dashboard.strava import is_connected, save_credentials
+        from pulso.dashboard.strava import is_connected, save_credentials
 
         monkeypatch.setenv("GARMIN_DASHBOARD_DIR", str(tmp_path))
         cache = ChunkCache(tmp_path)
@@ -411,9 +411,7 @@ class TestCli:
         assert app.name == "Pulso.app"
         script = app / "Contents" / "MacOS" / "pulso"
         assert script.stat().st_mode & stat.S_IXUSR
-        assert "/opt/py/bin/python3 -m garmin_connect_mcp.cli dashboard --window" in (
-            script.read_text()
-        )
+        assert "/opt/py/bin/python3 -m pulso.cli dashboard --window" in (script.read_text())
         plist = (app / "Contents" / "Info.plist").read_text()
         assert "<string>pulso</string>" in plist
         assert "<key>CFBundleIconFile</key><string>AppIcon</string>" in plist
@@ -431,7 +429,7 @@ class TestServer:
             step(0, 2, "sleep")
             release.wait(5)
             if srv.fail:  # type: ignore[attr-defined]
-                raise SystemExit("Garmin is not authenticated. Run: garmin-connect-mcp auth")
+                raise SystemExit("Garmin is not authenticated. Run: pulso auth")
             step(2, 2, "")
             syncs.append(1)
             return {"fetched": 3, "cached": 0, "errors": []}
@@ -503,7 +501,7 @@ class TestServer:
         server.release.set()
 
         failed = self._wait_until_finished(server)
-        assert failed["state"] == "error" and "garmin-connect-mcp auth" in failed["error"]
+        assert failed["state"] == "error" and "pulso auth" in failed["error"]
         assert self._request(server, "POST", "/api/sync")[0] == 202, "a failure can be retried"
 
     def test_rejects_foreign_hosts_and_origins(self, server):

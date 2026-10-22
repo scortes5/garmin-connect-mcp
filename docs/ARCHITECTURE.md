@@ -2,8 +2,8 @@
 
 Pulso has two front ends over one Garmin client:
 
-1. **The MCP server** (`garmin-connect-mcp`): Claude or any MCP client calls tools over stdio and gets compact JSON.
-2. **The dashboard** (`garmin-connect-mcp dashboard`): downloads your history — from Garmin and, optionally, Strava — into a local cache and renders a self-contained HTML app.
+1. **The MCP server** (`pulso`): Claude or any MCP client calls tools over stdio and gets compact JSON.
+2. **The dashboard** (`pulso dashboard`): downloads your history — from Garmin and, optionally, Strava — into a local cache and renders a self-contained HTML app.
 
 Both run only on your computer and talk only to Garmin Connect (and Strava, once you connect it to the dashboard).
 
@@ -34,7 +34,7 @@ flowchart LR
 ## Repository layout
 
 ```
-src/garmin_connect_mcp/
+src/pulso/
   cli.py                 entry point: server | auth | dashboard
   auth.py                config, token detection, private (0600) file writes
   client.py              login, one cached session per process, error mapping
@@ -181,7 +181,7 @@ Design rules: plain words instead of acronyms, one y-axis per chart, weekly or m
 
 ### 6. Serve (`dashboard/server.py`)
 
-`garmin-connect-mcp dashboard` (unless `--static`) starts `ThreadingHTTPServer` on `127.0.0.1` (random port unless `--port`) and opens the browser at once — it does not sync first:
+`pulso dashboard` (unless `--static`) starts `ThreadingHTTPServer` on `127.0.0.1` (random port unless `--port`) and opens the browser at once — it does not sync first:
 
 | Route | |
 |---|---|
@@ -197,7 +197,7 @@ The page shows cached data immediately (or, with an empty cache, a first-run pro
 
 Requests whose `Host` is not `127.0.0.1:<port>` / `localhost:<port>` (DNS rebinding) or whose `Origin` is another site (cross-site POST) get 403. The server exits 2 minutes after the last heartbeat, or 10 minutes after start if no tab ever connects — so the macOS app does not leave processes behind. It never stops while a sync is running.
 
-`install-app` writes `~/Applications/Pulso.app` (icon from `assets/icon.icns`, rendered from `assets/icon.svg`), a bundle whose executable runs `python -m garmin_connect_mcp.cli dashboard --window` with the interpreter that installed it.
+`install-app` writes `~/Applications/Pulso.app` (icon from `assets/icon.icns`, rendered from `assets/icon.svg`), a bundle whose executable runs `python -m pulso.cli dashboard --window` with the interpreter that installed it.
 
 ---
 

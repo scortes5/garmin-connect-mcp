@@ -1,7 +1,7 @@
 [project]
-name = "garmin-connect-mcp"
+name = "pulso"
 version = "1.4.0"
-description = "Garmin Connect for Claude and any MCP client, plus a private local dashboard of your whole training and health history"
+description = "Pulso: a private local dashboard of your whole Garmin and Strava training and health history, plus Garmin Connect for Claude and any MCP client"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
@@ -19,7 +19,7 @@ Repository = "https://github.com/scortes5/pulso"
 Upstream = "https://github.com/eddmann/garmin-connect-mcp"
 
 [project.scripts]
-garmin-connect-mcp = "garmin_connect_mcp.cli:main"
+pulso = "pulso.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -34,7 +34,7 @@ include = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/garmin_connect_mcp"]
+packages = ["src/pulso"]
 
 [dependency-groups]
 dev = [
@@ -70,7 +70,7 @@ ignore = ["E501"]  # Line length enforced by ruff format instead
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py files
-"src/garmin_connect_mcp/server.py" = ["E402"]  # Imports must come after FastMCP initialization
+"src/pulso/server.py" = ["E402"]  # Imports must come after FastMCP initialization
 
 [tool.pyright]
 pythonVersion = "3.12"

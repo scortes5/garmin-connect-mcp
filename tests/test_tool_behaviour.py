@@ -10,9 +10,9 @@ import pytest
 from fastmcp import Client
 from garminconnect import GarminConnectAuthenticationError
 
-import garmin_connect_mcp.client as client_module
-import garmin_connect_mcp.middleware as middleware_module
-from garmin_connect_mcp.server import mcp
+import pulso.client as client_module
+import pulso.middleware as middleware_module
+from pulso.server import mcp
 
 
 class FakeGarmin:

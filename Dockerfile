@@ -41,7 +41,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 # Health check (optional - checks if Python and dependencies are available)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python -c "import garmin_connect_mcp; print('ok')" || exit 1
+    CMD python -c "import pulso; print('ok')" || exit 1
 
 # Run the MCP server
-ENTRYPOINT ["garmin-connect-mcp"]
+ENTRYPOINT ["pulso"]

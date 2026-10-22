@@ -84,7 +84,7 @@
       privacy: "Tus datos se guardan solo en este computador.", syncWarnings: "avisos de sincronización",
       welcomeTitle: "Preparando Pulso", welcomeBody: "Descargando tu historial completo. La primera vez toma unos minutos; después solo se baja lo nuevo y se abre al instante.",
       preparing: "Preparando…", downloading: "Descargando", upToDate: "Al día", syncFailed: "No se pudo sincronizar",
-      authHint: "Inicia sesión en Garmin desde una terminal con: garmin-connect-mcp auth", showingCached: "Mostrando los datos guardados.", refreshing: "Datos nuevos, actualizando…",
+      authHint: "Inicia sesión en Garmin desde una terminal con: pulso auth", showingCached: "Mostrando los datos guardados.", refreshing: "Datos nuevos, actualizando…",
       sources: { daily_summaries: "Resumen diario", sleep: "Sueño", hrv: "HRV", readiness: "Disposición para entrenar", training_status: "Estado de entrenamiento", max_metrics: "VO₂ máx.", endurance: "Resistencia", body_composition: "Peso", activities: "Actividades", strava: "Strava" },
       // panel
       panel: { metric: "Métrica diaria", acts: "Actividades", activity: "Actividad", field: "Dato de actividad", day: "Día", series: "Serie", finding: "Patrón", best: "Mejor esfuerzo", zone: "Zona", gear: "Equipo" },
@@ -188,7 +188,7 @@
       privacy: "Your data is stored only on this computer.", syncWarnings: "sync warnings",
       welcomeTitle: "Setting up Pulso", welcomeBody: "Downloading your full history. The first time takes a few minutes; after that only new data is fetched and it opens instantly.",
       preparing: "Preparing…", downloading: "Downloading", upToDate: "Up to date", syncFailed: "Sync failed",
-      authHint: "Sign in to Garmin from a terminal with: garmin-connect-mcp auth", showingCached: "Showing saved data.", refreshing: "New data, refreshing…",
+      authHint: "Sign in to Garmin from a terminal with: pulso auth", showingCached: "Showing saved data.", refreshing: "New data, refreshing…",
       sources: { daily_summaries: "Daily summary", sleep: "Sleep", hrv: "HRV", readiness: "Training readiness", training_status: "Training status", max_metrics: "VO₂ max", endurance: "Endurance", body_composition: "Weight", activities: "Activities", strava: "Strava" },
       panel: { metric: "Daily metric", acts: "Activities", activity: "Activity", field: "Activity field", day: "Day", series: "Series", finding: "Pattern", best: "Best effort", zone: "Zone", gear: "Gear" },
       gran: { day: "Day", week: "Week", month: "Month" }, scopeFiltered: "Chosen period", scopeAll: "All history",
@@ -986,7 +986,7 @@
     const tx = t();
     el.innerHTML = `<div class="card-head"><div><h2>${esc(tx.stravaConnectTitle)}</h2><p class="sub">${esc(tx.stravaConnectBody)}</p></div>
       <button class="btn ghost" data-strava-hide>${esc(tx.notNow)}</button></div>
-      ${LIVE ? stravaForm() : `<p class="sub">${esc(tx.stravaCli)}</p><pre class="code">garmin-connect-mcp dashboard strava</pre>`}`;
+      ${LIVE ? stravaForm() : `<p class="sub">${esc(tx.stravaCli)}</p><pre class="code">pulso dashboard strava</pre>`}`;
   }
 
   function renderOverview() {
@@ -1383,7 +1383,7 @@
     el.hidden = DEMO && !STRAVA;
     if (el.hidden) return;
     if (!STRAVA || !STRAVA.connected) {
-      el.innerHTML = `<h2>${esc(tx.stravaConnectTitle)}</h2><p class="sub">${esc(tx.stravaConnectBody)}</p>${LIVE ? stravaForm() : `<p class="sub">${esc(tx.stravaCli)}</p><pre class="code">garmin-connect-mcp dashboard strava</pre>`}`;
+      el.innerHTML = `<h2>${esc(tx.stravaConnectTitle)}</h2><p class="sub">${esc(tx.stravaConnectBody)}</p>${LIVE ? stravaForm() : `<p class="sub">${esc(tx.stravaCli)}</p><pre class="code">pulso dashboard strava</pre>`}`;
       return;
     }
     const z = (list, u) => (list || []).map((x, i) => `Z${i + 1} ${x[1] === -1 ? `> ${x[0]}` : `${x[0]}–${x[1]}`}`).join(" · ") + (list && list.length ? ` ${u}` : "");

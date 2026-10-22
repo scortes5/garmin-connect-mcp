@@ -171,7 +171,7 @@ class StravaAPI:
         self.cache = cache
         self.creds = load_credentials(cache)
         if not self.creds.get("refresh_token"):
-            raise NotConnected("Strava is not connected. Run: garmin-connect-mcp dashboard strava")
+            raise NotConnected("Strava is not connected. Run: pulso dashboard strava")
         self.http = http or httpx.Client(timeout=30)
         self.now = now
         # [used, limit] for the 15-minute and daily windows, from Strava's response headers.
@@ -192,8 +192,7 @@ class StravaAPI:
         )
         if res.status_code in (400, 401):
             raise NotConnected(
-                "Strava access was revoked or expired. Connect again: "
-                "garmin-connect-mcp dashboard strava"
+                "Strava access was revoked or expired. Connect again: pulso dashboard strava"
             )
         res.raise_for_status()
         body = res.json()

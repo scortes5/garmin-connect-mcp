@@ -81,7 +81,7 @@ def main(save_password: bool = False):
     print(f"Tokens saved to: {get_token_store()}")
     print()
     print("You can now use the Garmin Connect MCP server:")
-    print("  uvx garmin-connect-mcp")
+    print("  uvx pulso")
     print()
     print("Your saved tokens will be reused automatically.")
     print("Re-run this script if you need to change credentials or re-authenticate.")

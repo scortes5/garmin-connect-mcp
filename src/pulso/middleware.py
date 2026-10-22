@@ -31,8 +31,7 @@ class ConfigMiddleware(Middleware):
 
         if not can_authenticate(config):
             raise ToolError(
-                "Garmin is not authenticated. "
-                "Please run 'garmin-connect-mcp auth' to set up authentication."
+                "Garmin is not authenticated. Please run 'pulso auth' to set up authentication."
             )
 
         # Initialize Garmin client
@@ -40,7 +39,7 @@ class ConfigMiddleware(Middleware):
         if client is None:
             raise ToolError(
                 "Failed to initialize Garmin client. "
-                "Please run 'garmin-connect-mcp auth' to authenticate interactively. "
+                "Please run 'pulso auth' to authenticate interactively. "
                 "If the problem persists, check your Garmin credentials."
             )
 
