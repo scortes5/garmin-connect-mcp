@@ -66,6 +66,7 @@ class DashboardServer(ThreadingHTTPServer):
                 return False
         if not self.sync_lock.acquire(blocking=False):
             return False
+        print(f"Sync started ({'opened' if auto else 'button'}).", file=sys.stderr)
         generation = self.status["generation"] + 1
         self.status = {"state": "running", "done": 0, "total": 0, "generation": generation}
         threading.Thread(target=self._run_sync, daemon=True).start()

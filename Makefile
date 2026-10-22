@@ -93,7 +93,7 @@ dashboard/demo: ## Open the dashboard with synthetic data (no account needed)
 dashboard/full: ## Open the dashboard app and re-download all history
 	@uv run garmin-connect-mcp dashboard --full
 
-app: ## Install the macOS "Garmin Dashboard" app in ~/Applications
+app: ## Install the macOS "Pulso" app in ~/Applications
 	@uv run garmin-connect-mcp dashboard install-app
 
 ##@ Docker

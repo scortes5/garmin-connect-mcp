@@ -1,4 +1,4 @@
-/* Garmin Dashboard — single-file app. Data comes from window.GARMIN_DATA (see normalize.py). */
+/* Pulso (Garmin dashboard) — single-file app. Data comes from window.GARMIN_DATA (see normalize.py). */
 (() => {
   "use strict";
 

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - First run shows a progress screen per data source instead of an empty page; sync failures (e.g. expired login) are shown in a banner while saved data stays visible
 - The local server no longer shuts down while a sync is running
 - Cache files are written atomically
+- The app is now called **Pulso**, with its own icon (`assets/icon.svg` → `icon.icns`) in the macOS bundle, page header and favicon
+- `--window` opens it as a standalone app window (Chrome, Edge or Brave) with a private browser profile; the macOS app uses it
 
 ## [1.2.0] - 2026-10-22
 

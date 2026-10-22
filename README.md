@@ -133,7 +133,8 @@ Only relationships with at least 20 days of data and p < 0.05 are shown as findi
 | `… --static` | Sync, then write a standalone `~/.garmin-dashboard/dashboard.html` instead of running the app. |
 | `… --output FILE` / `--no-open` | Write the static page elsewhere (implies `--static`) / don't open the browser. |
 | `… --demo` | Synthetic athlete, no account needed. Never touches your real cache. |
-| `garmin-connect-mcp dashboard install-app` | macOS: installs **Garmin Dashboard.app** in `~/Applications` — double-click it to open the app. |
+| `… --window` | Open in its own app window (Chrome, Edge or Brave) instead of a browser tab. |
+| `garmin-connect-mcp dashboard install-app` | macOS: installs **Pulso.app** (with its icon) in `~/Applications` — open it from Launchpad, Spotlight or the Dock; it runs the app in its own window. |
 
 From a checkout, the same commands are `make dashboard`, `make dashboard/static`, `make dashboard/demo` and `make app`.
 

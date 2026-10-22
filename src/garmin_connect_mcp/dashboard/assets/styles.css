@@ -71,10 +71,9 @@ h3 { font-size: 13px; margin: 0 0 10px; font-weight: 600; letter-spacing: -0.005
   border-bottom: 1px solid var(--border);
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand svg { width: 30px; height: 30px; }
-.brand svg rect { fill: var(--accent); }
-.brand svg path { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.brand strong { display: block; font-size: 15px; }
+/* The icon art has macOS's transparent margin; negative margins keep the brand compact. */
+.brand img { width: 44px; height: 44px; margin: -6px -4px -6px -6px; }
+.brand strong { display: block; font-size: 16px; letter-spacing: -0.01em; }
 .brand span { display: block; font-size: 12px; }
 .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
@@ -243,9 +242,7 @@ tr:hover td { background: var(--surface-2); }
   width: min(520px, 100%); text-align: center; background: var(--surface); border: 1px solid var(--border);
   border-radius: 20px; padding: 36px 32px 28px; box-shadow: 0 12px 40px rgba(16, 24, 40, 0.08);
 }
-.welcome-logo { width: 52px; height: 52px; }
-.welcome-logo rect { fill: var(--accent); }
-.welcome-logo path { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.welcome-logo { width: 96px; height: 96px; margin: -8px 0 -10px; }
 .welcome h1 { font-size: 21px; letter-spacing: -0.02em; margin: 16px 0 6px; }
 .welcome p { margin: 0 auto 22px; max-width: 420px; }
 .progress { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }

@@ -157,7 +157,7 @@ The page shows cached data immediately (or, with an empty cache, a first-run pro
 
 Requests whose `Host` is not `127.0.0.1:<port>` / `localhost:<port>` (DNS rebinding) or whose `Origin` is another site (cross-site POST) get 403. The server exits 2 minutes after the last heartbeat, or 10 minutes after start if no tab ever connects — so the macOS app does not leave processes behind. It never stops while a sync is running.
 
-`install-app` writes `~/Applications/Garmin Dashboard.app`, a bundle whose executable runs `python -m garmin_connect_mcp.cli dashboard` with the interpreter that installed it.
+`install-app` writes `~/Applications/Pulso.app` (icon from `assets/icon.icns`, rendered from `assets/icon.svg`), a bundle whose executable runs `python -m garmin_connect_mcp.cli dashboard --window` with the interpreter that installed it.
 
 ---
 

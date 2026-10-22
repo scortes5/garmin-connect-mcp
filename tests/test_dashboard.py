@@ -343,6 +343,7 @@ class TestRender:
         assert "window.GARMIN_DATA = {" in html
         assert "window.GARMIN_LIVE = false" in html
         assert "<script src=" not in html and '<link rel="stylesheet"' not in html
+        assert '<link rel="icon" href="data:image/svg+xml;base64,' in html
         assert "/*__" not in html, "every template marker is replaced"
 
     def test_user_text_cannot_break_out_of_the_script_tag(self):
@@ -387,13 +388,20 @@ class TestCli:
         assert '"activities":[{' in html and '"correlations":' in html
         assert not real.exists()
 
-    def test_install_app_creates_a_launchable_bundle(self, tmp_path):
+    def test_install_app_creates_a_launchable_bundle_with_its_icon(self, tmp_path):
         app = install_app(python="/opt/py/bin/python3", apps_dir=tmp_path)
 
-        script = app / "Contents" / "MacOS" / "garmin-dashboard"
+        assert app.name == "Pulso.app"
+        script = app / "Contents" / "MacOS" / "pulso"
         assert script.stat().st_mode & stat.S_IXUSR
-        assert "/opt/py/bin/python3 -m garmin_connect_mcp.cli dashboard " in script.read_text()
-        assert "<string>garmin-dashboard</string>" in (app / "Contents" / "Info.plist").read_text()
+        assert "/opt/py/bin/python3 -m garmin_connect_mcp.cli dashboard --window" in (
+            script.read_text()
+        )
+        plist = (app / "Contents" / "Info.plist").read_text()
+        assert "<string>pulso</string>" in plist
+        assert "<key>CFBundleIconFile</key><string>AppIcon</string>" in plist
+        icon = app / "Contents" / "Resources" / "AppIcon.icns"
+        assert icon.read_bytes()[:4] == b"icns"
 
 
 class TestServer:

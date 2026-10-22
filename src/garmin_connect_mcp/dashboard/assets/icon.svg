@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Pulso app icon: a training-load ring with a heartbeat through it. Source of icon.icns. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#232b38"/>
+      <stop offset="1" stop-color="#0a0e15"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f97316" stop-opacity="0.28"/>
+      <stop offset="0.7" stop-color="#f97316" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fdba74"/>
+      <stop offset="0.5" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#e11d48"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#glow)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#sheen)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="185" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="3"/>
+  <circle cx="512" cy="512" r="272" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="58"/>
+  <circle cx="512" cy="512" r="272" fill="none" stroke="url(#ring)" stroke-width="58" stroke-linecap="round"
+          stroke-dasharray="1330 1709" transform="rotate(-90 512 512) scale(1 -1) translate(0 -1024)"/>
+  <path d="M300 528 H400 L440 440 L496 646 L556 376 L604 564 L632 512 H724" fill="none" stroke="#ffffff"
+        stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

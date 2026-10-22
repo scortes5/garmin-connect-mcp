@@ -1,5 +1,6 @@
 """Render the dataset into one self-contained HTML file (no network needed to view it)."""
 
+import base64
 import json
 from importlib import resources
 from pathlib import Path
@@ -28,8 +29,10 @@ def render_html(dataset: dict[str, Any], *, live: bool = False, auto_sync: bool 
     chart_js = (_ASSETS / "chart.umd.min.js").read_text(encoding="utf-8")
     app_js = (_ASSETS / "app.js").read_text(encoding="utf-8")
     styles = (_ASSETS / "styles.css").read_text(encoding="utf-8")
+    icon = base64.b64encode((_ASSETS / "icon.svg").read_bytes()).decode()
     replacements = {
         "/*__STYLES__*/": styles,
+        "/*__ICON__*/": f"data:image/svg+xml;base64,{icon}",
         "/*__CHART_JS__*/": chart_js,
         "/*__APP_JS__*/": app_js,
         "/*__LIVE__*/false": "true" if live else "false",
