@@ -321,6 +321,10 @@ class TestCorrelations:
         assert load_hrv["hiMean"] < load_hrv["loMean"], "hard days are followed by lower HRV"
         assert load_hrv["hiCut"] == 150, "zero-inflated load splits rest days from training days"
 
+    def test_hypotheses_are_shipped_so_the_page_can_recompute_any_range(self, synced):
+        result = correlations(build_dataset(synced, today=TODAY), today=TODAY)
+        assert ["actLoad", "hrv", 1] in result["pairs"]
+
     def test_matrix_is_square_and_symmetric(self, synced):
         result = correlations(build_dataset(synced, today=TODAY), today=TODAY)
         matrix = result["scopes"]["all"]["matrix"]
@@ -386,7 +390,20 @@ class TestCli:
 
         html = out.read_text()
         assert '"activities":[{' in html and '"correlations":' in html
+        assert '"strava":{"connected":true' in html, "the demo includes a simulated Strava"
+        assert "demo-polyline-must-be-stripped" not in html
         assert not real.exists()
+
+    def test_strava_disconnect_forgets_the_tokens(self, tmp_path, monkeypatch):
+        from garmin_connect_mcp.dashboard.strava import is_connected, save_credentials
+
+        monkeypatch.setenv("GARMIN_DASHBOARD_DIR", str(tmp_path))
+        cache = ChunkCache(tmp_path)
+        save_credentials(cache, {"refresh_token": "r"})
+
+        dashboard_main(["strava", "--disconnect"])
+
+        assert not is_connected(cache)
 
     def test_install_app_creates_a_launchable_bundle_with_its_icon(self, tmp_path):
         app = install_app(python="/opt/py/bin/python3", apps_dir=tmp_path)

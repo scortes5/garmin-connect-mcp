@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-22
+
+### Added
+
+- **Strava** in the dashboard: connect from the app (*Connect Strava* card) or with `garmin-connect-mcp dashboard strava` using your own Strava API application. It syncs after Garmin on every open: your heart-rate and power zones and the time in them per activity, running best efforts with PR ranks, per-km splits, segments, laps, relative effort, kudos, device, gear and gear mileage, plus activities recorded outside Garmin. Garmin uploads are enriched, never counted twice. Downloads stay under Strava's rate limits and resume on the next sync; maps, coordinates and identity are stripped before caching. `--disconnect` forgets the tokens
+- A filter bar for every view: period presets (30/90 days, 12 months, this year, each year, all), any custom date range, sports and source (Garmin/Strava)
+- Click-through side panel on every number, card, chart bar, zone, calendar day, record, finding and table row: its history by day, week or month (chosen period or all history), and the exact rows it was computed from, with CSV export. Activities show every Garmin and Strava field, zones, a power curve against your best of the period, splits, segments, laps and best efforts; any value opens how it varied across that sport
+- **Data** tab: every dataset as a table (daily metrics, activities, zones, best efforts, splits, segments, laps, best power, VO₂ max, weight, endurance, gear) with column picker, search, data dictionary and CSV download
+- Training: Strava heart-rate and power zones, best running times and gear cards; Recovery: breathing, pulse ox, relative effort and endurance score cards
+- `make dashboard/strava`; the demo includes a simulated Strava account
+
+### Changed
+
+- Findings are recomputed in the page for the selected period instead of only the precomputed scopes
+- The sport filter in the Activities tab moved to the global filter bar
+
 ## [1.3.0] - 2026-10-22
 
 ### Changed

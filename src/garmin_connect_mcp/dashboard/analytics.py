@@ -196,4 +196,10 @@ def correlations(dataset: dict[str, Any], *, today: date | None = None) -> dict[
     }
     for year in dataset.get("years", []):
         scopes[year] = _scope(days, (f"{year}-01-01", f"{year}-12-31"))
-    return {"metrics": list(MATRIX_METRICS), "minN": MIN_N, "scopes": scopes}
+    return {
+        "metrics": list(MATRIX_METRICS),
+        "minN": MIN_N,
+        # The page recomputes these for any date range the user picks.
+        "pairs": [list(p) for p in PAIRS],
+        "scopes": scopes,
+    }

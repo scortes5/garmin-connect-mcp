@@ -3,9 +3,9 @@
 Garmin Connect MCP has two front ends over one Garmin client:
 
 1. **The MCP server** (`garmin-connect-mcp`): Claude or any MCP client calls tools over stdio and gets compact JSON.
-2. **The dashboard** (`garmin-connect-mcp dashboard`): downloads your history into a local cache and renders a self-contained HTML app.
+2. **The dashboard** (`garmin-connect-mcp dashboard`): downloads your history — from Garmin and, optionally, Strava — into a local cache and renders a self-contained HTML app.
 
-Both run only on your computer and talk only to Garmin Connect.
+Both run only on your computer and talk only to Garmin Connect (and Strava, once you connect it to the dashboard).
 
 ```mermaid
 flowchart LR
@@ -17,13 +17,16 @@ flowchart LR
         L --> SYNC[dashboard/sync.py]
         MCP <-->|stdio| C[Claude / MCP client]
         SYNC --> CACHE[(~/.garmin-dashboard/raw<br/>JSON chunks 0600)]
+        ST[dashboard/strava.py] --> CACHE
         CACHE --> NORM[normalize.py] --> DS[dataset]
         DS --> AN[analytics.py] --> DS
         DS --> R[render.py] --> HTML[dashboard.html 0600<br/>Chart.js + app.js + data inlined]
         HTML --> B[Browser]
         SRV[server.py · 127.0.0.1] -.->|app| B
         SRV -.->|Sync button| SYNC
+        SRV -.->|Connect Strava| ST
     end
+    STRAVA[(Strava API)] <-->|HTTPS · OAuth tokens| ST
 ```
 
 ---
@@ -43,11 +46,13 @@ src/garmin_connect_mcp/
     sources.py           the Garmin endpoints read, and their window sizes
     cache.py             raw responses on disk, one file per source and window
     sync.py              incremental download
+    strava.py            Strava OAuth, rate-limited client, incremental sync
+    strava_data.py       Strava responses -> fields merged into activities + athlete block
     normalize.py         raw responses -> one row per day + activities + series
     analytics.py         correlation matrix and lagged hypotheses
     render.py            inlines CSS, Chart.js, app.js and the data into one page
     server.py            local app server: page, background sync, status
-    demo.py              synthetic account used by --demo
+    demo.py              synthetic Garmin and Strava account used by --demo
     cli.py               argument parsing, macOS app installer
     assets/              dashboard.html, styles.css, app.js, Chart.js 4.4.1 (MIT)
 tests/                   behaviour tests; Garmin faked at the library boundary
@@ -84,14 +89,36 @@ Windows never cross a calendar year (`windows()`), so a window's key is stable f
 
 **Pacing.** 0.25 s between requests. A first sync of ~5 years is ~300 requests.
 
+### 1b. Strava (`strava.py`)
+
+Optional. `dashboard strava` (terminal) or the *Connect Strava* card (app) runs OAuth with the user's own Strava API application: the app's `POST /api/strava/connect` returns Strava's authorization URL with a random `state`; Strava redirects the browser to `GET /strava/callback` on the local server, which checks the `state` and the granted scope, trades the code for tokens and saves them `0600` in `strava.json`. Requested scope: `read,activity:read_all,profile:read_all`. Tokens are refreshed when they are a minute from expiring; a refused refresh means *connect again*.
+
+When connected, every sync runs Garmin first and Strava after (one combined progress count):
+
+| Step | Endpoint | Cost | Cached as |
+|---|---|---|---|
+| Profile | `GET /athlete` | 1 | `raw/strava_athlete/profile.json` — FTP, weight, bikes and shoes only |
+| Zones | `GET /athlete/zones` | 1 | `raw/strava_athlete/zones.json` |
+| Totals | `GET /athletes/{id}/stats` | 1 | `raw/strava_athlete/stats.json` |
+| Activity lists | `GET /athlete/activities` | 1 per 200 | `raw/strava_activities/<start>_<end>.json`, one window per year |
+| Detail | `GET /activities/{id}` | 1 per activity | `raw/strava_activity/<id>.json` — best efforts, splits, segments, laps, device, gear |
+| Zones per activity | `GET /activities/{id}/zones` | 1 per activity | `raw/strava_zones/<id>.json` |
+
+Year windows follow the same settle rule as Garmin. Details are fetched newest first and only once. The client reads `X-ReadRateLimit-Usage` (falling back to `X-RateLimit-Usage`) after every response and stops 10 requests short of the 15-minute limit and 50 short of the daily one; a 429 also stops the sync. What is left is reported as `pending_details` in `strava-meta.json` and continues next sync.
+
+**Privacy.** Before writing, `strip_activity` removes `map`, `start_latlng`, `end_latlng`, `athlete`, `photos` and `private_note`; segment efforts keep only name, times, distance, grade and PR/KOM rank; the profile keeps no name, photo or city.
+
 ### 2. Cache (`cache.py`)
 
 ```
 ~/.garmin-dashboard/            0700   (GARMIN_DASHBOARD_DIR overrides)
   meta.json                     0600   first_year, last_sync, errors
+  strava.json                   0600   Strava client ID/secret and OAuth tokens (when connected)
+  strava-meta.json              0600   last Strava sync, pending details, errors
   dashboard.html                0600   last rendered page
   app.log                              output of the macOS app
-  raw/<source>/<start>_<end>.json  0600  raw Garmin response
+  raw/<source>/<start>_<end>.json  0600  raw Garmin (or Strava list) response
+  raw/<source>/<key>.json          0600  one Strava activity, its zones, or the athlete
 ```
 
 Raw responses are kept as Garmin sent them, so changing how data is normalised never requires downloading again. The only exception is activities: owner name, profile image URLs, account roles and start/end coordinates are removed **before** writing.
@@ -110,7 +137,9 @@ Produces the dataset embedded in the page:
   "vo2": [ { "date": …, "sport": "cycling", "value": 49.6 } ],
   "endurance": [ { "date": …, "value": 6120 } ],
   "weight": [ { "date": …, "kg": 74.1, "fat": null, "bmi": 23.4 } ],
-  "correlations": { … }   // added by analytics.py
+  "strava": { "connected": true, "hrZones": [[0, 123], …], "powerZones": […], "gear": […], "totals": {…}, … } | null,
+  "correlations": { "pairs": [["actLoad", "hrv", 1], …], "scopes": { … } },  // added by analytics.py
+  "demo": false
 }
 ```
 
@@ -123,6 +152,7 @@ Rules worth knowing:
 - **Readiness** is recalculated during the day; the `AFTER_WAKEUP_RESET` (morning) value is kept.
 - **Training status** comes from your primary training device when several devices report.
 - **Rest days are zero load**, not missing: any day with wellness data and no activity gets `actN = actMin = actKm = actElev = actLoad = 0`.
+- **Strava merge** (`strava_data.py`): a Strava activity whose `external_id` carries a Garmin activity ID (`garmin_ping_…`) enriches that activity; otherwise the same sport starting within two minutes on the same day does. Enriched activities get `src: "both"`, Strava-only ones `src: "strava"` (ID `s<strava id>`) and count in the daily totals; Garmin-only ones get `src: "garmin"` once Strava is connected.
 - **CTL / ATL / TSB** are computed from Garmin's per-activity training load with 42- and 7-day exponential averages (TSB is the form going *into* the day).
 
 ### 4. Analytics (`analytics.py`)
@@ -134,13 +164,20 @@ Pure Python, no NumPy.
 - **Hypotheses (`PAIRS`):** `(x, y, lag)`; lag 1 pairs *x* on day *d* with *y* on *d + 1*. For each: Pearson r, Spearman ρ, n, two-sided p-value (t statistic with a normal approximation, accurate to two decimals for n ≥ 20), regression slope and intercept, and the mean of *y* for the bottom and top quartile of *x*. For zero-inflated *x* (training load) the "top" group is every day above the bottom group.
 - The page shows a hypothesis as a **finding** when p < 0.05 and |r| ≥ 0.12.
 
-The scatter explorer recomputes r in the browser for any pair the user picks.
+`pairs` ships the hypothesis list so the page recomputes the same statistics (same p-value approximation) for any date range the filter selects; the precomputed `scopes` remain for consumers of the dataset.
 
 ### 5. Render (`render.py`, `assets/`)
 
 `dashboard.html` has five markers replaced in order: styles, Chart.js, `app.js`, the live flag, and last the data (so no marker is ever searched for inside user text). JSON is escaped so `</script>` in an activity name cannot close the script element. The result needs no network.
 
-`app.js` is a dependency-free single-page app: five tabs, a period selector, i18n (ES/EN, `?lang=`), theme (auto/dark/light), and one render function per tab. Preferences are kept in `localStorage` when available. Design rules: plain words instead of acronyms (each metric carries a one-line explanation in `METRICS`), one y-axis per chart, weekly or monthly averages instead of noisy daily series, and colours as roles in `styles.css` — sports use a fixed categorical order validated for colour-vision deficiency in light and dark, magnitudes an ordinal blue ramp. Findings are the significant hypothesis pairs from `analytics.py`, phrased per metric in `X_PHRASE` / `Y_NOUN`.
+`app.js` is a dependency-free single-page app: six tabs, a filter bar, a side panel, i18n (ES/EN, `?lang=`) and theme (auto/dark/light). Preferences and filters are kept in `localStorage` when available.
+
+- **Filters.** A period preset (30/90 days, 12 months, this year, each year, all, custom) or two dates; sport chips; and, when activities carry `src`, a source filter. `actsIn(range)` applies all three; daily metrics only follow the dates. The previous period is the same span just before (the previous year for a year).
+- **Side panel.** Any element with `data-open='{spec}'` opens a panel kind: `metric` (a daily metric), `acts` (a set of activities with a measure), `activity`, `field` (one activity field across a sport), `day`, `series`, `finding` (scatter), `best` (a running distance), `zone`, `gear`. Each shows a chart with day/week/month buckets over the chosen period or all history, and the rows it used in a sortable table with CSV export. Opening from inside the panel pushes onto a stack (← goes back). Chart marks are clickable through `chart(id, config, onPick)`.
+- **Data tab.** Twelve flat datasets built from the same filtered data (daily metrics, activities, zones, best efforts, splits, segments, laps, best power, VO₂ max, weight, endurance, gear) with a column picker (saved per dataset), search, CSV and a data dictionary generated from `F`.
+- **Field dictionary.** `F` in `app.js` holds every field's label (ES/EN), unit, decimals, which direction is better, a one-line explanation and whether it adds up (`sum`) or averages per bucket.
+
+Design rules: plain words instead of acronyms, one y-axis per chart, weekly or monthly buckets instead of noisy daily series unless the range is short, and colours as roles in `styles.css` — sports use a fixed categorical order validated for colour-vision deficiency in light and dark, magnitudes an ordinal blue ramp. Findings are the significant hypothesis pairs, phrased per metric in `X_PHRASE` / `Y_NOUN`.
 
 ### 6. Serve (`dashboard/server.py`)
 
@@ -152,6 +189,9 @@ The scatter explorer recomputes r in the browser for any pair the user picks.
 | `POST /api/sync` | Starts an incremental sync in a background thread and returns 202 (200 with `started: false` if one is running). With `{"auto": true}` — sent by the page as it opens — it is also skipped when a sync finished in the last 5 minutes, so the reload that shows new data does not sync again. |
 | `GET /api/status` | `state` (`idle`/`running`/`done`/`error`), `done`/`total` requests, current `source`, and the `result` or `error` of the last run. |
 | `POST /api/ping` | Heartbeat from open tabs. |
+| `POST /api/strava/connect` | `{client_id, client_secret}` → Strava's authorization URL (400 with a readable error for malformed credentials). |
+| `GET /strava/callback` | Strava's redirect: saves the tokens, starts a sync and redirects to `/?strava=connected`; an error page otherwise. |
+| `POST /api/strava/disconnect` | Deletes `strava.json`. |
 
 The page shows cached data immediately (or, with an empty cache, a first-run progress screen), polls `/api/status` while a sync runs, and reloads once it downloaded something. A failure (e.g. expired login) is shown in a banner while the cached data stays on screen. Cache files are written to a temporary name and renamed, so a page built mid-sync never reads half a file.
 
@@ -191,7 +231,8 @@ Every daily metric in `dataset.days`. Units are metric.
 | `acute`, `chronic` | Garmin acute and chronic load | load | training_status |
 | `acwr` | Acute:chronic workload ratio | ratio | training_status |
 | `tStatus` | Garmin training status code (0–7) | code | training_status |
-| `actN`, `actMin`, `actKm`, `actElev`, `actLoad` | Activities that day: count, minutes, km, elevation gain, summed training load | – | activities |
+| `actN`, `actMin`, `actKm`, `actElev`, `actLoad` | Activities that day (Garmin and Strava-only): count, minutes, km, elevation gain, summed training load | – | activities |
+| `relEffort` | Summed Strava relative effort | points | Strava |
 | `lastEnd` | Local hour the last activity ended | h of day | activities |
 | `ctl`, `atl`, `tsb` | Fitness (42 d), fatigue (7 d), form = CTL − ATL | load | derived |
 
@@ -210,6 +251,13 @@ Fields of each entry in `dataset.activities`:
 | `zones` | Minutes in HR zones 1–5 |
 | `power` | Best average power for 5 s … 60 min (`{"1200": 263}` = 20 min) |
 | `end`, `pr` | Local end hour, personal record flag |
+| `src` | `garmin`, `strava` or `both` (only once Strava is connected) |
+| `sid`, `sportType`, `kudos`, `achievements`, `prCount`, `comments` | Strava ID, Strava sport type and social counts |
+| `relEffort`, `kj`, `wAvgW`, `maxKmh`, `elevHigh`, `elevLow`, `rpe` | Relative effort, work, weighted power, max speed, highest/lowest point, perceived exertion |
+| `gear`, `gearId`, `device`, `desc`, `commute`, `trainer` | Gear name and ID, recording device, description, commute and indoor flags |
+| `hrZonesS`, `pwrZonesS` | Minutes in your Strava heart-rate and power zones |
+| `best` | Running best efforts: `{"5k": [seconds, prRank]}` |
+| `splits`, `laps`, `segs` | Per-km splits, laps and segment efforts (time, distance, HR, power, grade, PR/KOM rank) |
 
 Fields that a device did not record are omitted, never zero.
 
@@ -226,7 +274,8 @@ Fields that a device did not record are omitted, never zero.
 | Asset | Protection |
 |---|---|
 | OAuth tokens | `~/.garminconnect`, folder `0700`, files `0600`; password not stored unless `--save-password` |
-| Synced health data | `~/.garmin-dashboard`, folders `0700`, files `0600`; identity and GPS stripped from activities |
+| Synced health data | `~/.garmin-dashboard`, folders `0700`, files `0600`; identity and GPS stripped from Garmin and Strava activities |
+| Strava tokens | `strava.json` `0600`; OAuth `state` checked on the callback; refreshed automatically, forgotten with `--disconnect` |
 | Rendered page | `0600`, no external requests, user text escaped inside `<script>` |
 | Local server | `127.0.0.1` only, Host and Origin checks, no CORS, idle shutdown |
 | Repository | `.gitignore` excludes tokens, env files, exports and data; gitleaks on every push; tests use invented data |
@@ -235,11 +284,12 @@ Fields that a device did not record are omitted, never zero.
 
 ## Testing
 
-`make can-release` runs ruff, pyright and pytest — the same as CI. Tests drive real code and fake Garmin only where the `garminconnect` library would make HTTP calls. `tests/test_dashboard.py` uses a deterministic fake account (trains every third day, hard days lower next-night HRV) and checks the pipeline end to end: windows requested, incremental behaviour, private permissions, stripped fields, normalisation rules, that the correlation engine finds the planted relationship, HTML escaping, the CLI and the local server's Host/Origin checks.
+`make can-release` runs ruff, pyright and pytest — the same as CI. Tests drive real code and fake Garmin only where the `garminconnect` library would make HTTP calls. `tests/test_dashboard.py` uses a deterministic fake account (trains every third day, hard days lower next-night HRV) and checks the pipeline end to end: windows requested, incremental behaviour, private permissions, stripped fields, normalisation rules, that the correlation engine finds the planted relationship, HTML escaping, the CLI and the local server's Host/Origin checks. `tests/test_strava.py` fakes Strava at the HTTP boundary (`httpx.MockTransport`) and covers the OAuth round trip (terminal and app), forged callbacks, token refresh and revocation, the rate-limit budget resuming on the next sync, stripping, and the merge with Garmin (no duplicates, Strava-only activities counted).
 
 ## Extending the dashboard
 
 1. **New Garmin source:** add a `Source` in `sources.py` with its safe window, then parse it in `normalize.py`.
-2. **New daily metric:** add it to `DAY_METRICS` (Python) and `METRICS` (`app.js`: labels, unit, decimals, which direction is better).
-3. **New hypothesis:** append `(x, y, lag)` to `PAIRS` in `analytics.py`; it appears in the findings when significant.
-4. Add a test in `tests/test_dashboard.py` and run `make can-release`.
+2. **New daily metric or activity field:** add it to `DAY_METRICS` (Python) if daily, and to `F` (`app.js`: labels, unit, decimals, which direction is better, explanation). It then appears in the Data tab, the dictionary and the panels.
+3. **New Strava field:** add it in `_extras` (`strava_data.py`) and to `F`.
+4. **New hypothesis:** append `(x, y, lag)` to `PAIRS` in `analytics.py`; it appears in the findings when significant (add its phrasing to `X_PHRASE` / `Y_NOUN`).
+5. Add a test in `tests/test_dashboard.py` and run `make can-release`.
