@@ -29,10 +29,25 @@
   </div>
   <div class="topbar-inner nav-row">
     <nav id="tabs" class="tabs" aria-label="Secciones"></nav>
-    <div class="period">
-      <label for="scope" data-i18n="period"></label>
-      <select id="scope" class="select"></select>
+  </div>
+  <div class="topbar-inner filter-row" id="filters">
+    <div class="filter">
+      <label for="preset" data-i18n="period"></label>
+      <select id="preset" class="select"></select>
     </div>
+    <div class="filter dates">
+      <input id="from" class="input date" type="date" aria-label="Desde">
+      <span class="muted">–</span>
+      <input id="to" class="input date" type="date" aria-label="Hasta">
+    </div>
+    <div class="filter">
+      <div id="sport-chips" class="chips" role="group"></div>
+    </div>
+    <div class="filter" id="src-filter" hidden>
+      <label for="src" data-i18n="sourceLabel"></label>
+      <select id="src" class="select"></select>
+    </div>
+    <button id="filters-reset" class="btn ghost" hidden data-i18n="resetFilters"></button>
   </div>
 </header>
 
@@ -67,10 +82,12 @@
 
     <div class="card">
       <h2 data-i18n="weeklyTitle"></h2>
-      <p class="sub" data-i18n="weeklySub"></p>
+      <p class="sub" id="weekly-sub"></p>
       <div class="legend" id="weekly-legend"></div>
       <div class="chart"><canvas id="c-weekly"></canvas></div>
     </div>
+
+    <div id="strava-connect" class="card strava-card" hidden></div>
 
     <div class="section-head">
       <h2 data-i18n="findingsTitle"></h2>
@@ -102,8 +119,13 @@
         <div class="chart"><canvas id="c-form"></canvas></div>
       </div>
       <div class="card">
-        <h2 data-i18n="zonesTitle"></h2>
-        <p class="sub" data-i18n="zonesSub"></p>
+        <div class="card-head">
+          <div>
+            <h2 data-i18n="zonesTitle"></h2>
+            <p class="sub" id="zones-sub"></p>
+          </div>
+          <div id="zone-src" class="segmented" role="tablist"></div>
+        </div>
         <div id="zones" class="zones"></div>
       </div>
     </div>
@@ -117,6 +139,19 @@
     <div class="card">
       <h2 data-i18n="recordsTitle"></h2>
       <div id="records" class="records"></div>
+    </div>
+
+    <div class="grid two" id="strava-training">
+      <div class="card" id="best-card" hidden>
+        <h2 data-i18n="bestTitle"></h2>
+        <p class="sub" data-i18n="bestSub"></p>
+        <div id="best-efforts" class="table-wrap"></div>
+      </div>
+      <div class="card" id="gear-card" hidden>
+        <h2 data-i18n="gearTitle"></h2>
+        <p class="sub" data-i18n="gearSub"></p>
+        <div id="gear" class="table-wrap"></div>
+      </div>
     </div>
   </section>
 
@@ -162,12 +197,35 @@
     <div class="card">
       <div class="toolbar">
         <input id="act-search" class="input" type="search">
-        <select id="act-sport" class="select"></select>
         <span id="act-count" class="muted"></span>
       </div>
       <div id="act-table" class="table-wrap"></div>
-      <div id="act-pager" class="pager"></div>
     </div>
+  </section>
+
+  <!-- Datos -->
+  <section data-tab="data">
+    <p class="lead" data-i18n="dataLead"></p>
+    <div class="card">
+      <div class="toolbar">
+        <select id="data-set" class="select"></select>
+        <input id="data-search" class="input" type="search">
+        <details class="colpick" id="data-cols">
+          <summary class="btn" data-i18n="columns"></summary>
+          <div class="colpick-menu" id="data-cols-menu"></div>
+        </details>
+        <button id="data-csv" class="btn" data-i18n="downloadCsv"></button>
+        <span id="data-count" class="muted"></span>
+      </div>
+      <p class="sub" id="data-desc"></p>
+      <div id="data-table" class="table-wrap"></div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="dictTitle"></h2>
+      <p class="sub" data-i18n="dictSub"></p>
+      <div id="data-dict" class="table-wrap"></div>
+    </div>
+    <div class="card" id="strava-status" hidden></div>
   </section>
 </main>
 
@@ -175,6 +233,20 @@
   <span data-i18n="privacy"></span>
   <span id="errors"></span>
 </footer>
+
+<div id="scrim" class="scrim" hidden></div>
+<aside id="panel" class="panel" hidden role="dialog" aria-modal="true" aria-labelledby="panel-title">
+  <div class="panel-head">
+    <button id="panel-back" class="btn icon" hidden aria-label="←">←</button>
+    <div class="panel-titles">
+      <p class="kicker" id="panel-kicker"></p>
+      <h2 id="panel-title"></h2>
+      <p class="sub" id="panel-sub"></p>
+    </div>
+    <button id="panel-close" class="btn icon" aria-label="✕">✕</button>
+  </div>
+  <div id="panel-body" class="panel-body"></div>
+</aside>
 
 <div id="toast" class="toast" hidden></div>
 

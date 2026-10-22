@@ -93,6 +93,9 @@ dashboard/demo: ## Open the dashboard with synthetic data (no account needed)
 dashboard/full: ## Open the dashboard app and re-download all history
 	@uv run garmin-connect-mcp dashboard --full
 
+dashboard/strava: ## Connect your Strava account to the dashboard
+	@uv run garmin-connect-mcp dashboard strava
+
 app: ## Install the macOS "Pulso" app in ~/Applications
 	@uv run garmin-connect-mcp dashboard install-app
 

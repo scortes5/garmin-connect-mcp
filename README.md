@@ -32,7 +32,7 @@
 
 Garmin Connect MCP is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets Claude (or any MCP client) read your Garmin Connect account. Ask in plain language — *"how did my long ride go?"*, *"am I recovered enough for intervals today?"*, *"chart HR and power for last Saturday"* — and the model pulls the real numbers instead of guessing.
 
-It also ships a **local dashboard**: one command downloads your entire history (activities, sleep, HRV, Body Battery, stress, readiness, VO₂ max, training status, weight) and opens it as an interactive page where you can move back year by year and see which of your own numbers move together.
+It also ships a **local dashboard**: one command downloads your entire history (activities, sleep, HRV, Body Battery, stress, readiness, VO₂ max, training status, weight) — and, if you connect it, your **Strava** zones, best efforts, splits, segments and gear — and opens it as an interactive page. Filter any view by dates, sports and source, tap any number to see how it changed over time and the exact rows behind it, and browse or export every table as CSV.
 
 It talks to Garmin Connect with **your own login**, stores nothing on any server, and keeps your tokens and exported files readable only by your user.
 
@@ -99,22 +99,41 @@ The dashboard is a small local app: it opens straight away with what is already 
 | Section | What you see |
 |---|---|
 | **Summary** | One sentence with the period's totals and the change vs the period before; four key numbers with a mini trend; **"How are you doing lately?"** — the last 7 days of HRV, resting HR, sleep, morning energy and stress against your own normal range, labelled *better / normal / worse*; weekly hours by sport; and up to four findings from your data written as plain sentences (*"After hard training days, your readiness goes down: 37 vs 72"*). |
-| **Training** | Hours, distance and share of time per sport; month-by-month hours; fitness vs fatigue (weekly); time in each heart-rate zone; a calendar of training days; your best marks of the period. |
-| **Recovery & sleep** | One card per metric — HRV, resting HR, sleep hours and score, morning energy (Body Battery), stress, readiness, steps — each with a one-line explanation, the period average, the change vs the previous period and a weekly trend; sleep stages, bed and wake times and regularity; VO₂ max and weight. |
+| **Training** | Hours, distance and share of time per sport; month-by-month hours; fitness vs fatigue (weekly); time in each heart-rate zone (Garmin's, or your Strava heart-rate and power zones); a calendar of training days; your best marks of the period; with Strava, your best running times per distance and your gear's mileage. |
+| **Recovery & sleep** | One card per metric — HRV, resting HR, sleep hours and score, morning energy (Body Battery), stress, readiness, steps, breathing, pulse ox, relative effort — each with a one-line explanation, the period average, the change vs the previous period and a trend; sleep stages, bed and wake times and regularity; VO₂ max, weight and endurance score. |
 | **Year by year** | Running total since 1 January with the selected year highlighted against the others (hours, distance, elevation or activities), and a year table with the best year per column in bold. |
-| **Activities** | Every activity, searchable, filterable by sport and sortable by any column. |
+| **Activities** | Every activity, searchable by name, place or gear, sortable by any column. |
+| **Data** | Every table the dashboard has — daily metrics, activities, time in zones, best efforts, per-km splits, segments, laps, best power per duration, VO₂ max, weight, endurance, gear — with a column picker, search, a data dictionary and **CSV download**. |
 
-Every view follows the period selector: **last 12 months**, **any single year**, or **all history**.
+**Filters.** One bar drives every view: a period (last 30 or 90 days, last 12 months, this year, any single year, all history, or any custom range picked with two dates), the sports to include, and — with Strava connected — the source (Garmin, Strava or both). The comparison with the previous period, the findings and every chart follow it.
+
+**Tap anything.** Every number, card, bar, zone, calendar day, record, finding and table row opens a side panel with its history (by day, week or month; the chosen period or all history) and the rows it was computed from, ready to export. An activity shows every field Garmin and Strava recorded — zones, power curve against your best of the period, splits, segments, laps, best efforts — and any of its values opens how that value has varied across your activities of that sport.
+
+<p align="center">
+  <img src="docs/screenshots/panel.jpg" alt="Side panel: weekly hours of one sport with a day/week/month switch, totals and the list of activities behind the number" width="900">
+</p>
 
 <p align="center">
   <img src="docs/screenshots/training.jpg" alt="Training: hours per sport, month by month, fitness and fatigue, heart-rate zones, training calendar and best marks" width="290">
   <img src="docs/screenshots/health.jpg" alt="Recovery and sleep: one card per metric with an explanation and weekly trend, sleep stages, VO2 max and weight" width="290">
-  <img src="docs/screenshots/history.jpg" alt="Year by year: running totals per year and a year summary table" width="290">
+  <img src="docs/screenshots/data.jpg" alt="Data: every table with a column picker, search and CSV download" width="290">
 </p>
 
 <p align="center">
   <img src="docs/screenshots/findings.jpg" alt="Findings written as plain sentences, each with a two-bar comparison" width="900">
 </p>
+
+### Strava
+
+```bash
+garmin-connect-mcp dashboard strava     # or the "Connect Strava" card inside the app
+```
+
+Strava adds what Garmin does not give the dashboard: your heart-rate and power zones as set on Strava and the time spent in them per activity, running best efforts (400 m … marathon) with PR ranks, per-kilometre splits, segment efforts, laps, relative effort, kudos and achievements, the device and the gear of each activity, and the total mileage of your bikes and shoes. Activities recorded somewhere else (a phone, Zwift, another watch) are added too.
+
+To connect, create your own API application at [strava.com/settings/api](https://www.strava.com/settings/api) (any name and website; *Authorization Callback Domain*: `localhost`), then paste its Client ID and Client Secret into the app or the terminal and authorize. Pulso asks for `read,activity:read_all,profile:read_all` and nothing else; the tokens are stored `0600` in `~/.garmin-dashboard/strava.json` and refreshed automatically. `garmin-connect-mcp dashboard strava --disconnect` forgets them.
+
+Strava then syncs with Garmin every time the app opens. An activity Garmin uploaded to Strava is recognised by its Garmin ID (or, failing that, by its start time and sport) and **enriched**, never counted twice. Strava allows 100 requests per 15 minutes and 1,000 per day: activity lists cost one request per 200 activities, full detail two requests per activity, so a long history is completed newest first over several syncs; the Data tab says how many are still pending. Maps, coordinates, your name and photos are removed before anything is written to disk.
 
 ### Correlations
 
@@ -123,7 +142,7 @@ Your history is turned into one row per day, then tested two ways:
 - **A matrix** of 18 daily metrics (training load, steps, HRV, resting HR, sleep score and stages, bedtime, stress, Body Battery, readiness, form…), Pearson r.
 - **24 lagged hypotheses** — the questions athletes actually ask: does a hard day lower *tonight's* HRV? Does going to bed late cost sleep score? Does a high acute:chronic ratio show up in readiness? Each reports Pearson r, Spearman ρ, p-value, number of days, and the average outcome on your top-quartile vs bottom-quartile days.
 
-Only relationships with at least 20 days of data and p < 0.05 are shown as findings. Rest days count as zero training load, so load is compared against rest, not just easy days against hard ones. These are associations in your own data, not medical advice and not proof of cause.
+Findings are recomputed in the page for whatever period the filter selects. Only relationships with at least 30 days of data and p < 0.05 are shown as findings; tap one to see the scatter of every day behind it. Rest days count as zero training load, so load is compared against rest, not just easy days against hard ones. These are associations in your own data, not medical advice and not proof of cause.
 
 ### Options
 
@@ -137,9 +156,10 @@ Only relationships with at least 20 days of data and p < 0.05 are shown as findi
 | `… --output FILE` / `--no-open` | Write the static page elsewhere (implies `--static`) / don't open the browser. |
 | `… --demo` | Synthetic athlete, no account needed. Never touches your real cache. |
 | `… --window` | Open in its own app window (Chrome, Edge or Brave) instead of a browser tab. |
+| `garmin-connect-mcp dashboard strava` | Connect your Strava account (guided). `--disconnect` forgets it; downloaded data stays. |
 | `garmin-connect-mcp dashboard install-app` | macOS: installs **Pulso.app** (with its icon) in `~/Applications` — open it from Launchpad, Spotlight or the Dock; it runs the app in its own window. |
 
-From a checkout, the same commands are `make dashboard`, `make dashboard/static`, `make dashboard/demo` and `make app`.
+From a checkout, the same commands are `make dashboard`, `make dashboard/static`, `make dashboard/demo`, `make dashboard/strava` and `make app`. The demo includes a simulated Strava account.
 
 The page is a single file with Chart.js inlined: it opens offline and loads nothing from the internet. It contains your health history, so it is written `0600` and lives outside the repository. Spanish and English, light and dark theme.
 

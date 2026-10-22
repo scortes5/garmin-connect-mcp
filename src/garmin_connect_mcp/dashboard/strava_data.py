@@ -103,7 +103,7 @@ def _extras(s: dict[str, Any], detail: dict[str, Any] | None, zones: Any, gear_n
         "relEffort": _num(s.get("suffer_score"), digits=0),
         "kj": _num(s.get("kilojoules"), digits=0),
         "wAvgW": _num(s.get("weighted_average_watts"), digits=0),
-        "maxKmh": _num(s.get("max_speed"), 3.6, 1),
+        "maxKmh": _num(s.get("max_speed"), 3.6, 1) or None,
         "elevHigh": _num(s.get("elev_high"), digits=0),
         "elevLow": _num(s.get("elev_low"), digits=0),
         "gear": (d.get("gear") or {}).get("name") or gear_names.get(gear_id),
