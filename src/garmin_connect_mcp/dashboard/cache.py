@@ -39,7 +39,10 @@ class ChunkCache:
         for folder in (self.root, self.raw_dir, path.parent):
             folder.mkdir(mode=0o700, parents=True, exist_ok=True)
             os.chmod(folder, 0o700)
-        write_private_file(path, json.dumps(payload, separators=(",", ":")))
+        # Write then rename, so a page built mid-sync never reads a half-written window.
+        tmp = path.with_suffix(".json.tmp")
+        write_private_file(tmp, json.dumps(payload, separators=(",", ":")))
+        os.replace(tmp, path)
 
     def drop_overlapping(self, source: str, start: date, end: date) -> None:
         """Remove stale windows that overlap ``start..end`` (e.g. a shorter "today" window)."""

@@ -4,6 +4,7 @@
 
   const RAW = window.GARMIN_DATA || {};
   const LIVE = !!window.GARMIN_LIVE;
+  const AUTOSYNC = LIVE && !!window.GARMIN_AUTOSYNC;
   const TODAY = new Date().toISOString().slice(0, 10);
 
   // ---------------------------------------------------------------- i18n
@@ -46,6 +47,10 @@
       daily: "diario", avg7: "media 7 días", baseline: "rango basal", goal: "meta",
       bins: ["Descanso", "1–75", "75–150", "150–250", "250+"],
       corrUnits: "r", nPoints: "días", slope: "pendiente", topQ: "cuartil alto", lowQ: "cuartil bajo",
+      welcomeTitle: "Preparando tu dashboard", welcomeBody: "Descargando tu historial completo de Garmin Connect. La primera vez toma unos minutos; después solo se baja lo nuevo y se abre al instante.",
+      preparing: "Preparando…", downloading: "Descargando", upToDate: "Al día", updated: "Actualizado", syncFailed: "No se pudo sincronizar",
+      authHint: "Inicia sesión en Garmin desde una terminal con: garmin-connect-mcp auth", showingCached: "Mostrando los datos guardados.", refreshing: "Datos nuevos, actualizando…",
+      sources: { daily_summaries: "Resumen diario", sleep: "Sueño", hrv: "HRV", readiness: "Disposición para entrenar", training_status: "Estado de entrenamiento", max_metrics: "VO₂ máx.", endurance: "Endurance score", body_composition: "Peso", activities: "Actividades" },
     },
     en: {
       tabs: { overview: "Overview", training: "Training", recovery: "Recovery", sleep: "Sleep", fitness: "Fitness & health", years: "Years", correlations: "Correlations", activities: "Activities" },
@@ -85,6 +90,10 @@
       daily: "daily", avg7: "7-day avg", baseline: "baseline", goal: "goal",
       bins: ["Rest", "1–75", "75–150", "150–250", "250+"],
       corrUnits: "r", nPoints: "days", slope: "slope", topQ: "top quartile", lowQ: "bottom quartile",
+      welcomeTitle: "Setting up your dashboard", welcomeBody: "Downloading your full Garmin Connect history. The first time takes a few minutes; after that only new data is fetched and it opens instantly.",
+      preparing: "Preparing…", downloading: "Downloading", upToDate: "Up to date", updated: "Updated", syncFailed: "Sync failed",
+      authHint: "Sign in to Garmin from a terminal with: garmin-connect-mcp auth", showingCached: "Showing saved data.", refreshing: "New data, refreshing…",
+      sources: { daily_summaries: "Daily summary", sleep: "Sleep", hrv: "HRV", readiness: "Training readiness", training_status: "Training status", max_metrics: "VO₂ max", endurance: "Endurance score", body_composition: "Weight", activities: "Activities" },
     },
   };
 
@@ -148,6 +157,7 @@
     for (const k of Object.keys(cols)) if (k !== "date") row[k] = cols[k][i];
     return row;
   });
+  const HAS_DATA = DAYS.length > 0 || (RAW.activities || []).length > 0;
   const DAY_INDEX = new Map(DAYS.map((d, i) => [d.date, i]));
   const ACTS = (RAW.activities || []).slice().sort((a, b) => (a.start < b.start ? -1 : 1));
   const YEARS = (RAW.years || []).slice().sort();
@@ -309,14 +319,16 @@
     $("tabs").innerHTML = Object.entries(t().tabs).map(([k, v]) => `<button class="tab" data-tab="${k}" aria-selected="${k === state.tab}">${esc(v)}</button>`).join("");
     document.querySelectorAll("main > section").forEach((s) => s.classList.toggle("active", s.dataset.tab === state.tab));
 
-    const last = RAW.lastSync ? new Date(RAW.lastSync) : null;
+    const last = RAW.lastSync && !LIVE ? new Date(RAW.lastSync) : null; // the app shows it in the sync pill
     $("sync-info").textContent = [
       last ? `${t().lastSync} ${last.toLocaleString(state.lang, { dateStyle: "medium", timeStyle: "short" })}` : "",
-      `${nf(DAYS.length)} ${t().days} · ${nf(ACTS.length)} ${t().acts}`,
+      HAS_DATA ? `${nf(DAYS.length)} ${t().days} · ${nf(ACTS.length)} ${t().acts}` : "",
     ].filter(Boolean).join(" · ");
 
     $("sync-btn").hidden = !LIVE;
-    $("sync-btn").textContent = t().sync;
+    $("sync-btn").textContent = sync.running ? t().syncing : t().sync;
+    $("sync-btn").disabled = sync.running;
+    renderSyncStatus();
     const errs = RAW.syncErrors || [];
     $("errors").textContent = errs.length ? `⚠ ${errs.length} ${t().syncWarnings}` : "";
     $("errors").title = errs.map((e) => `${e.source} ${e.window}: ${e.error}`).join("\n");
@@ -917,8 +929,11 @@
   const RENDER = { overview: renderOverview, training: renderTraining, recovery: renderRecovery, sleep: renderSleep, fitness: renderFitness, years: renderYears, correlations: renderCorrelations, activities: renderActivities };
   function render() {
     renderShell();
-    if (!DAYS.length && !ACTS.length) {
-      $("main").innerHTML = `<div class="empty">${esc(t().noData)}</div>`;
+    if (!HAS_DATA) {
+      // First run of the app: a progress screen instead of empty charts.
+      $("welcome").hidden = !LIVE;
+      $("tabs").hidden = $("scopes").hidden = !!LIVE;
+      $("main").innerHTML = LIVE ? "" : `<div class="empty">${esc(t().noData)}</div>`;
       return;
     }
     (RENDER[state.tab] || renderOverview)();
@@ -963,29 +978,114 @@
   window.addEventListener("hashchange", () => { const tab = location.hash.slice(1); if (RENDER[tab] && tab !== state.tab) { state.tab = tab; render(); } });
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (state.theme === "auto") render(); });
 
+  // ---------------------------------------------------------------- sync (app only)
+  // The page asks the local server to sync on open, keeps showing cached data meanwhile and
+  // reloads once new data has landed. The server skips automatic syncs right after one ran,
+  // so that reload does not start another.
+  const sync = { running: false, watched: false, status: null };
+  const SOURCE_ORDER = ["daily_summaries", "sleep", "hrv", "readiness", "training_status", "max_metrics", "endurance", "body_composition", "activities"];
+
+  function ago(iso) {
+    const s = (Date.now() - new Date(iso)) / 1000;
+    const rtf = new Intl.RelativeTimeFormat(state.lang, { numeric: "auto" });
+    if (s < 60) return rtf.format(0, "second");
+    if (s < 3600) return rtf.format(-Math.round(s / 60), "minute");
+    if (s < 86400) return rtf.format(-Math.round(s / 3600), "hour");
+    return rtf.format(-Math.round(s / 86400), "day");
+  }
+
+  function renderSyncStatus() {
+    if (!LIVE) return;
+    const tx = t(), st = sync.status || {};
+    const pct = st.total ? Math.round((st.done / st.total) * 100) : 0;
+    const pill = $("sync-pill");
+    pill.hidden = false;
+    pill.dataset.state = sync.running ? "running" : st.state === "error" ? "error" : "ok";
+    $("sync-text").textContent = sync.running
+      ? (st.total ? `${tx.syncing} ${pct}%` : tx.preparing)
+      : st.state === "error" ? tx.syncFailed
+      : RAW.lastSync ? `${tx.upToDate} · ${ago(RAW.lastSync)}` : "";
+    pill.title = RAW.lastSync ? `${tx.lastSync} ${new Date(RAW.lastSync).toLocaleString(state.lang, { dateStyle: "medium", timeStyle: "short" })}` : "";
+    $("sync-bar").hidden = !sync.running;
+    $("sync-bar").firstElementChild.style.width = `${st.total ? Math.max(2, pct) : 2}%`;
+
+    const banner = $("banner");
+    banner.hidden = !(st.state === "error" && !sync.running);
+    if (!banner.hidden) {
+      const auth = /auth|sign in|login|401|403/i.test(st.error || "");
+      banner.innerHTML = `<b>${esc(tx.syncFailed)}.</b> ${esc(auth ? tx.authHint : st.error || "")}${HAS_DATA ? ` <span class="muted">${esc(tx.showingCached)}</span>` : ""}`;
+    }
+
+    if (!HAS_DATA) {
+      $("welcome-bar").style.width = `${pct}%`;
+      $("welcome-pct").textContent = st.total ? `${st.done} / ${st.total}` : "";
+      $("welcome-step").textContent = sync.running ? (st.source ? `${tx.downloading} · ${tx.sources[st.source] || st.source}` : tx.preparing) : st.state === "error" ? tx.syncFailed : "";
+      const at = SOURCE_ORDER.indexOf(st.source);
+      $("welcome-sources").innerHTML = SOURCE_ORDER.map((k, i) => {
+        const cls = !sync.running && st.state === "done" ? "done" : at < 0 ? "" : i < at ? "done" : i === at ? "active" : "";
+        return `<li class="${cls}">${esc(tx.sources[k])}</li>`;
+      }).join("");
+    }
+  }
+
+  function syncFinished(st) {
+    const fresh = st.state === "done" && st.result && st.result.fetched > 0;
+    if (sync.watched && fresh) {
+      toast(t().refreshing, 0);
+      try { sessionStorage.setItem("gd.scroll", String(window.scrollY)); } catch { /* storage unavailable */ }
+      setTimeout(() => location.reload(), 400);
+    } else if (sync.watched && st.state === "done") toast(t().synced);
+  }
+
+  function applyStatus(st) {
+    sync.status = st;
+    const wasRunning = sync.running;
+    sync.running = st.state === "running";
+    if (sync.running) sync.watched = true;
+    $("sync-btn").disabled = sync.running;
+    $("sync-btn").textContent = sync.running ? t().syncing : t().sync;
+    renderSyncStatus();
+    if (sync.running) setTimeout(poll, 700);
+    else if (wasRunning) syncFinished(st);
+  }
+
+  async function poll() {
+    try {
+      const res = await fetch("api/status", { cache: "no-store" });
+      applyStatus(await res.json());
+    } catch {
+      setTimeout(poll, 2000); // server busy or restarting; try again
+    }
+  }
+
+  async function startSync(auto) {
+    try {
+      const res = await fetch("api/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ auto }) });
+      const body = await res.json();
+      if (!body.ok) throw new Error(body.error || res.statusText);
+      applyStatus(body);
+    } catch (err) {
+      toast(`⚠ ${err.message}`, 8000);
+    }
+  }
+
   if (LIVE) {
-    $("sync-btn").addEventListener("click", async () => {
-      const btn = $("sync-btn");
-      btn.disabled = true;
-      btn.textContent = t().syncing;
-      toast(t().syncing, 0);
-      try {
-        const res = await fetch("api/sync", { method: "POST" });
-        const body = await res.json();
-        if (!res.ok || !body.ok) throw new Error(body.error || res.statusText);
-        toast(t().synced);
-        setTimeout(() => location.reload(), 600);
-      } catch (err) {
-        toast(`⚠ ${err.message}`, 8000);
-        btn.disabled = false;
-        btn.textContent = t().sync;
-      }
-    });
+    $("sync-btn").addEventListener("click", () => startSync(false));
     // Heartbeat: the local server shuts itself down a while after the last tab closes.
     const ping = () => fetch("api/ping", { method: "POST" }).catch(() => {});
     ping();
     setInterval(ping, 20000);
+    // Keep "updated 3 minutes ago" honest while the tab stays open.
+    setInterval(() => { if (!sync.running) renderSyncStatus(); }, 30000);
   }
 
   render();
+  try {
+    const y = sessionStorage.getItem("gd.scroll");
+    if (y) { sessionStorage.removeItem("gd.scroll"); window.scrollTo(0, +y); }
+  } catch { /* storage unavailable */ }
+  if (LIVE) {
+    if (AUTOSYNC) startSync(true);
+    else poll(); // show the last sync's result (and follow one already running)
+  }
 })();

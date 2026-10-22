@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-22
+
+### Changed
+
+- `garmin-connect-mcp dashboard` now opens the dashboard as a local app: the page loads instantly from the cache and syncs with Garmin in the background, with live progress in the top bar, then refreshes itself with the new data. The old write-a-file behaviour is `--static` (or `--output FILE`); `--serve` is accepted but no longer needed
+- First run shows a progress screen per data source instead of an empty page; sync failures (e.g. expired login) are shown in a banner while saved data stays visible
+- The local server no longer shuts down while a sync is running
+- Cache files are written atomically
+
 ## [1.2.0] - 2026-10-22
 
 ### Added

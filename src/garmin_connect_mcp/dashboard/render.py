@@ -16,12 +16,13 @@ def _embed_json(value: Any) -> str:
     return text.replace("</", "<\\/").replace("<!--", "<\\!--")
 
 
-def render_html(dataset: dict[str, Any], *, live: bool = False) -> str:
+def render_html(dataset: dict[str, Any], *, live: bool = False, auto_sync: bool = False) -> str:
     """Return the dashboard page with Chart.js, the app and the data inlined.
 
     Args:
         dataset: output of ``build_dataset`` with ``correlations`` attached.
-        live: True when served by ``dashboard --serve``; enables the in-page sync button.
+        live: True when served by the local app; enables the in-page sync button.
+        auto_sync: with ``live``, start a background sync as soon as the page opens.
     """
     template = (_ASSETS / "dashboard.html").read_text(encoding="utf-8")
     chart_js = (_ASSETS / "chart.umd.min.js").read_text(encoding="utf-8")
@@ -32,6 +33,7 @@ def render_html(dataset: dict[str, Any], *, live: bool = False) -> str:
         "/*__CHART_JS__*/": chart_js,
         "/*__APP_JS__*/": app_js,
         "/*__LIVE__*/false": "true" if live else "false",
+        "/*__AUTOSYNC__*/false": "true" if live and auto_sync else "false",
         # Last, so no marker is ever searched for inside user data.
         "/*__DATA__*/null": _embed_json(dataset),
     }

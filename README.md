@@ -91,10 +91,10 @@ It talks to Garmin Connect with **your own login**, stores nothing on any server
 
 ```bash
 garmin-connect-mcp auth          # once
-garmin-connect-mcp dashboard     # sync new data, build, open in your browser
+garmin-connect-mcp dashboard     # open the app; it syncs in the background as it loads
 ```
 
-The first run downloads every year since your oldest activity (a few hundred requests, a couple of minutes, deliberately paced). After that, only the last week and anything new is fetched, so a refresh takes seconds. Try it without an account: `garmin-connect-mcp dashboard --demo`.
+The dashboard is a small local app: it opens straight away with what is already cached and syncs with Garmin in the background, with a progress indicator in the top bar, then refreshes itself when new data lands. The first run downloads every year since your oldest activity (a few hundred requests, a couple of minutes, deliberately paced) and shows a progress screen while it does. After that, only the last week and anything new is fetched, so a refresh takes seconds. If the sync fails (for example, the Garmin login expired) the app says so and keeps showing your saved data. Try it without an account: `garmin-connect-mcp dashboard --demo`.
 
 | Section | What you see |
 |---|---|
@@ -126,16 +126,16 @@ Only relationships with at least 20 days of data and p < 0.05 are shown as findi
 
 | Command | |
 |---|---|
-| `garmin-connect-mcp dashboard` | Sync, write `~/.garmin-dashboard/dashboard.html`, open it. |
-| `… --no-sync` | Offline: rebuild from the cache. |
+| `garmin-connect-mcp dashboard` | Open the app on `127.0.0.1`; it syncs on every open (skipped if it synced in the last 5 minutes) and has a **Sync** button. Stops itself a couple of minutes after the last tab closes. |
+| `… --no-sync` | Offline: show the cache, no automatic sync. |
 | `… --full` | Re-download all history (after editing old activities). |
 | `… --since 2022` | Start from a given year. |
-| `… --output FILE` / `--no-open` | Write elsewhere / don't open the browser. |
-| `… --serve` | Local server on `127.0.0.1` with a **Sync** button in the page; stops itself a couple of minutes after the last tab closes. |
+| `… --static` | Sync, then write a standalone `~/.garmin-dashboard/dashboard.html` instead of running the app. |
+| `… --output FILE` / `--no-open` | Write the static page elsewhere (implies `--static`) / don't open the browser. |
 | `… --demo` | Synthetic athlete, no account needed. Never touches your real cache. |
-| `garmin-connect-mcp dashboard install-app` | macOS: installs **Garmin Dashboard.app** in `~/Applications` — double-click it to sync and open. |
+| `garmin-connect-mcp dashboard install-app` | macOS: installs **Garmin Dashboard.app** in `~/Applications` — double-click it to open the app. |
 
-From a checkout, the same commands are `make dashboard`, `make dashboard/serve`, `make dashboard/demo` and `make app`.
+From a checkout, the same commands are `make dashboard`, `make dashboard/static`, `make dashboard/demo` and `make app`.
 
 The page is a single file with Chart.js inlined: it opens offline and loads nothing from the internet. It contains your health history, so it is written `0600` and lives outside the repository. Spanish and English, light and dark theme.
 
@@ -427,7 +427,7 @@ Full detail in the [Changelog](CHANGELOG.md).
 - **No location unless you ask.** Streams leave out latitude and longitude by default: the start and end of most activities is your home.
 - **Less account detail in answers.** OAuth scopes and profile photo URLs are removed from every response before the model sees it.
 - **Writes are labelled.** Tools that change your Garmin account (`manage_weight_data`, `log_health_data`, `manage_workouts` upload) are marked as not read-only, so clients ask before running them.
-- **Dashboard data stays local.** Synced data lives in `~/.garmin-dashboard/` (folders `0700`, files `0600`; override with `GARMIN_DASHBOARD_DIR`). Owner name, account roles and GPS coordinates are dropped from activities before they are cached. `--serve` listens on `127.0.0.1` only and rejects requests from other hosts or origins.
+- **Dashboard data stays local.** Synced data lives in `~/.garmin-dashboard/` (folders `0700`, files `0600`; override with `GARMIN_DASHBOARD_DIR`). Owner name, account roles and GPS coordinates are dropped from activities before they are cached. The app listens on `127.0.0.1` only and rejects requests from other hosts or origins.
 - **Repository hygiene.** `.gitignore` excludes tokens, `.env` files, `.fit/.gpx/.tcx`, databases and exports; CI runs a secret scan on every push. Tests use made-up data only.
 
 Found a problem? See [SECURITY.md](SECURITY.md).

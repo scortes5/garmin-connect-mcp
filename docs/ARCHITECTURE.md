@@ -21,7 +21,7 @@ flowchart LR
         DS --> AN[analytics.py] --> DS
         DS --> R[render.py] --> HTML[dashboard.html 0600<br/>Chart.js + app.js + data inlined]
         HTML --> B[Browser]
-        SRV[server.py · 127.0.0.1] -.->|--serve| B
+        SRV[server.py · 127.0.0.1] -.->|app| B
         SRV -.->|Sync button| SYNC
     end
 ```
@@ -46,7 +46,7 @@ src/garmin_connect_mcp/
     normalize.py         raw responses -> one row per day + activities + series
     analytics.py         correlation matrix and lagged hypotheses
     render.py            inlines CSS, Chart.js, app.js and the data into one page
-    server.py            optional local server (--serve) with a sync endpoint
+    server.py            local app server: page, background sync, status
     demo.py              synthetic account used by --demo
     cli.py               argument parsing, macOS app installer
     assets/              dashboard.html, styles.css, app.js, Chart.js 4.4.1 (MIT)
@@ -144,17 +144,20 @@ The scatter explorer recomputes r in the browser for any pair the user picks.
 
 ### 6. Serve (`dashboard/server.py`)
 
-`--serve` starts `ThreadingHTTPServer` on `127.0.0.1` (random port unless `--port`):
+`garmin-connect-mcp dashboard` (unless `--static`) starts `ThreadingHTTPServer` on `127.0.0.1` (random port unless `--port`) and opens the browser at once — it does not sync first:
 
 | Route | |
 |---|---|
 | `GET /` | Rebuilds the page from the cache on every load. |
-| `POST /api/sync` | Runs an incremental sync (one at a time; a second request gets 409). |
+| `POST /api/sync` | Starts an incremental sync in a background thread and returns 202 (200 with `started: false` if one is running). With `{"auto": true}` — sent by the page as it opens — it is also skipped when a sync finished in the last 5 minutes, so the reload that shows new data does not sync again. |
+| `GET /api/status` | `state` (`idle`/`running`/`done`/`error`), `done`/`total` requests, current `source`, and the `result` or `error` of the last run. |
 | `POST /api/ping` | Heartbeat from open tabs. |
 
-Requests whose `Host` is not `127.0.0.1:<port>` / `localhost:<port>` (DNS rebinding) or whose `Origin` is another site (cross-site POST) get 403. The server exits 2 minutes after the last heartbeat, or 10 minutes after start if no tab ever connects — so the macOS app does not leave processes behind.
+The page shows cached data immediately (or, with an empty cache, a first-run progress screen), polls `/api/status` while a sync runs, and reloads once it downloaded something. A failure (e.g. expired login) is shown in a banner while the cached data stays on screen. Cache files are written to a temporary name and renamed, so a page built mid-sync never reads half a file.
 
-`install-app` writes `~/Applications/Garmin Dashboard.app`, a bundle whose executable runs `python -m garmin_connect_mcp.cli dashboard --serve` with the interpreter that installed it.
+Requests whose `Host` is not `127.0.0.1:<port>` / `localhost:<port>` (DNS rebinding) or whose `Origin` is another site (cross-site POST) get 403. The server exits 2 minutes after the last heartbeat, or 10 minutes after start if no tab ever connects — so the macOS app does not leave processes behind. It never stops while a sync is running.
+
+`install-app` writes `~/Applications/Garmin Dashboard.app`, a bundle whose executable runs `python -m garmin_connect_mcp.cli dashboard` with the interpreter that installed it.
 
 ---
 

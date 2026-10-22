@@ -1,6 +1,6 @@
 [project]
 name = "garmin-connect-mcp"
-version = "1.2.0"
+version = "1.3.0"
 description = "Garmin Connect for Claude and any MCP client, plus a private local dashboard of your whole training and health history"
 readme = "README.md"
 license = "MIT"

@@ -9,6 +9,7 @@
 <style>/*__STYLES__*/</style>
 </head>
 <body>
+<div id="sync-bar" class="sync-bar" hidden><i></i></div>
 <header class="topbar">
   <div class="brand">
     <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M6 19h5l3-8 4 13 3-7h5"/></svg>
@@ -19,6 +20,7 @@
   </div>
   <div class="controls">
     <div id="scopes" class="chips" role="tablist" aria-label="Period"></div>
+    <div id="sync-pill" class="sync-pill" hidden role="status" aria-live="polite"><span class="led"></span><span id="sync-text"></span></div>
     <button id="sync-btn" class="btn primary" hidden></button>
     <button id="lang-btn" class="btn ghost" title="Language">EN</button>
     <button id="theme-btn" class="btn ghost" title="Theme" aria-label="Theme">◐</button>
@@ -26,6 +28,19 @@
 </header>
 
 <nav id="tabs" class="tabs" aria-label="Sections"></nav>
+
+<div id="banner" class="banner" hidden role="alert"></div>
+
+<div id="welcome" class="welcome" hidden>
+  <div class="welcome-card">
+    <svg class="welcome-logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M6 19h5l3-8 4 13 3-7h5"/></svg>
+    <h1 data-i18n="welcomeTitle"></h1>
+    <p class="muted" data-i18n="welcomeBody"></p>
+    <div class="progress"><i id="welcome-bar"></i></div>
+    <div class="welcome-meta"><span id="welcome-step"></span><span id="welcome-pct"></span></div>
+    <ul id="welcome-sources" class="welcome-sources"></ul>
+  </div>
+</div>
 
 <main id="main">
   <section data-tab="overview">
@@ -145,6 +160,7 @@
 <script>
 window.GARMIN_DATA = /*__DATA__*/null;
 window.GARMIN_LIVE = /*__LIVE__*/false;
+window.GARMIN_AUTOSYNC = /*__AUTOSYNC__*/false;
 </script>
 <script>/*__APP_JS__*/</script>
 </body>

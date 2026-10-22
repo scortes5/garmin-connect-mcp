@@ -78,19 +78,19 @@ shell: ## Open a Python shell with the project context
 
 ##@ Dashboard
 
-dashboard: ## Sync new Garmin data and open the dashboard
+dashboard: ## Open the dashboard app (syncs in the background as it loads)
 	@uv run garmin-connect-mcp dashboard
 
 dashboard/offline: ## Open the dashboard from cached data only
 	@uv run garmin-connect-mcp dashboard --no-sync
 
-dashboard/serve: ## Run the dashboard locally with an in-page sync button
-	@uv run garmin-connect-mcp dashboard --serve
+dashboard/static: ## Sync, then write a standalone dashboard HTML file
+	@uv run garmin-connect-mcp dashboard --static
 
 dashboard/demo: ## Open the dashboard with synthetic data (no account needed)
 	@uv run garmin-connect-mcp dashboard --demo
 
-dashboard/full: ## Re-download all history, then open the dashboard
+dashboard/full: ## Open the dashboard app and re-download all history
 	@uv run garmin-connect-mcp dashboard --full
 
 app: ## Install the macOS "Garmin Dashboard" app in ~/Applications

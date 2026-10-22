@@ -8,6 +8,7 @@ import http.client
 import json
 import stat
 import threading
+import time
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -221,6 +222,16 @@ class TestSync:
         files = sorted(p.name for p in (cache.raw_dir / "daily_summaries").iterdir())
         assert files == ["2024-01-01_2024-12-31.json", "2025-01-01_2025-03-16.json"]
 
+    def test_progress_counts_every_request_and_ends_complete(self, cache):
+        steps: list[tuple[int, int, str]] = []
+        garmin = FakeGarmin()
+        sync(garmin, cache, today=TODAY, pause=0, on_step=lambda *s: steps.append(s))
+
+        total = len(garmin.calls)
+        assert [done for done, _, _ in steps] == list(range(total + 1))
+        assert {t for _, t, _ in steps} == {total}
+        assert steps[0][2] == "daily_summaries" and steps[-1] == (total, total, "")
+
     def test_failing_endpoint_is_reported_without_stopping_the_rest(self, cache):
         garmin = FakeGarmin()
         garmin.fail.add("hrv")
@@ -346,6 +357,11 @@ class TestRender:
     def test_live_flag(self):
         assert "window.GARMIN_LIVE = true" in render_html({"days": {"date": []}}, live=True)
 
+    def test_auto_sync_only_in_the_app(self):
+        empty = {"days": {"date": []}}
+        assert "GARMIN_AUTOSYNC = true" in render_html(empty, live=True, auto_sync=True)
+        assert "GARMIN_AUTOSYNC = false" in render_html(empty, live=False, auto_sync=True)
+
 
 class TestCli:
     def test_offline_build_writes_a_private_file(self, synced, tmp_path, monkeypatch):
@@ -358,7 +374,9 @@ class TestCli:
         assert stat.S_IMODE(out.stat().st_mode) == 0o600
         assert "GARMIN_DATA" in out.read_text()
 
-    def test_demo_runs_the_real_pipeline_without_touching_the_real_cache(self, tmp_path, monkeypatch):
+    def test_demo_runs_the_real_pipeline_without_touching_the_real_cache(
+        self, tmp_path, monkeypatch
+    ):
         real = tmp_path / "real"
         monkeypatch.setenv("GARMIN_DASHBOARD_DIR", str(real))
         out = tmp_path / "demo.html"
@@ -374,46 +392,107 @@ class TestCli:
 
         script = app / "Contents" / "MacOS" / "garmin-dashboard"
         assert script.stat().st_mode & stat.S_IXUSR
-        assert (
-            "/opt/py/bin/python3 -m garmin_connect_mcp.cli dashboard --serve" in script.read_text()
-        )
+        assert "/opt/py/bin/python3 -m garmin_connect_mcp.cli dashboard " in script.read_text()
         assert "<string>garmin-dashboard</string>" in (app / "Contents" / "Info.plist").read_text()
 
 
 class TestServer:
     @pytest.fixture
     def server(self):
+        release = threading.Event()
         syncs: list[int] = []
-        srv = DashboardServer(
-            0, page=lambda: "<html>ok</html>", do_sync=lambda: syncs.append(1) or {"fetched": 1}
-        )
+
+        def do_sync(step):
+            step(0, 2, "sleep")
+            release.wait(5)
+            if srv.fail:  # type: ignore[attr-defined]
+                raise SystemExit("Garmin is not authenticated. Run: garmin-connect-mcp auth")
+            step(2, 2, "")
+            syncs.append(1)
+            return {"fetched": 3, "cached": 0, "errors": []}
+
+        srv = DashboardServer(0, page=lambda: "<html>ok</html>", do_sync=do_sync)
+        srv.syncs, srv.release, srv.fail = syncs, release, False  # type: ignore[attr-defined]
         thread = threading.Thread(target=srv.serve_forever, daemon=True)
         thread.start()
-        srv.syncs = syncs  # type: ignore[attr-defined]
         yield srv
+        release.set()
         srv.shutdown()
 
-    def _request(self, server, method, path, headers=None):
+    def _request(self, server, method, path, headers=None, body=None):
         port = server.server_address[1]
         conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
-        conn.request(method, path, headers={"Host": f"127.0.0.1:{port}", **(headers or {})})
+        payload = json.dumps(body) if body is not None else None
+        conn.request(
+            method, path, body=payload, headers={"Host": f"127.0.0.1:{port}", **(headers or {})}
+        )
         res = conn.getresponse()
         return res.status, res.read().decode()
 
-    def test_serves_the_page_and_syncs_on_request(self, server):
+    def _status(self, server):
+        return json.loads(self._request(server, "GET", "/api/status")[1])
+
+    def _wait_until_finished(self, server):
+        deadline = time.monotonic() + 5
+        while self._status(server)["state"] == "running" and time.monotonic() < deadline:
+            time.sleep(0.01)
+        return self._status(server)
+
+    def test_page_opens_immediately_while_sync_runs_in_the_background(self, server):
+        status, body = self._request(server, "POST", "/api/sync", body={"auto": True})
+        assert status == 202 and json.loads(body)["started"] is True
+
         assert self._request(server, "GET", "/") == (200, "<html>ok</html>")
-        status, body = self._request(server, "POST", "/api/sync")
-        assert status == 200 and json.loads(body) == {"ok": True, "fetched": 1}
+        running = self._status(server)
+        assert running["state"] == "running"
+        assert (running["done"], running["total"], running["source"]) == (0, 2, "sleep")
+
+        server.release.set()
+        done = self._wait_until_finished(server)
+        assert done["state"] == "done" and done["result"]["fetched"] == 3
         assert server.syncs == [1]
+
+    def test_only_one_sync_runs_at_a_time(self, server):
+        assert self._request(server, "POST", "/api/sync")[0] == 202
+        status, body = self._request(server, "POST", "/api/sync")
+        assert status == 200 and json.loads(body)["started"] is False
+
+        server.release.set()
+        self._wait_until_finished(server)
+        assert server.syncs == [1]
+
+    def test_reopening_right_after_a_sync_does_not_sync_again_but_the_button_does(self, server):
+        server.release.set()
+        self._request(server, "POST", "/api/sync", body={"auto": True})
+        self._wait_until_finished(server)
+
+        status, body = self._request(server, "POST", "/api/sync", body={"auto": True})
+        assert json.loads(body)["started"] is False and json.loads(body)["state"] == "done"
+        assert self._request(server, "POST", "/api/sync", body={"auto": False})[0] == 202
+        self._wait_until_finished(server)
+        assert server.syncs == [1, 1]
+
+    def test_failed_sync_is_reported_in_the_status(self, server):
+        server.fail = True
+        self._request(server, "POST", "/api/sync", body={"auto": True})
+        server.release.set()
+
+        failed = self._wait_until_finished(server)
+        assert failed["state"] == "error" and "garmin-connect-mcp auth" in failed["error"]
+        assert self._request(server, "POST", "/api/sync")[0] == 202, "a failure can be retried"
 
     def test_rejects_foreign_hosts_and_origins(self, server):
         assert self._request(server, "GET", "/", {"Host": "evil.example:80"})[0] == 403
+        assert self._request(server, "GET", "/api/status", {"Host": "evil.example:80"})[0] == 403
         assert (
             self._request(server, "POST", "/api/sync", {"Origin": "http://evil.example"})[0] == 403
         )
-        assert server.syncs == []
+        assert self._status(server)["state"] == "idle"
 
-    def test_heartbeat_keeps_it_alive(self, server):
+    def test_heartbeat_keeps_it_alive_and_a_running_sync_is_never_cut_off(self, server):
         assert server.idle(server.started + 10_000)
         assert self._request(server, "POST", "/api/ping")[0] == 200
         assert not server.idle(server.last_ping + 1)
+
+        self._request(server, "POST", "/api/sync")
+        assert not server.idle(server.started + 10_000)
